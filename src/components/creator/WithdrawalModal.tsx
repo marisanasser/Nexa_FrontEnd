@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
 import {
   Dialog,
   DialogContent,
@@ -99,7 +98,6 @@ interface WithdrawalModalProps {
   onClose: () => void;
   balance: CreatorBalance;
   onWithdrawalCreated: () => void;
-  setComponent?: (component: string) => void;
 }
 
 export default function WithdrawalModal({
@@ -107,9 +105,7 @@ export default function WithdrawalModal({
   onClose,
   balance,
   onWithdrawalCreated,
-  setComponent,
 }: WithdrawalModalProps) {
-  const navigate = useNavigate();
   const [withdrawalMethods, setWithdrawalMethods] = useState<
     WithdrawalMethod[]
   >([]);
@@ -120,7 +116,6 @@ export default function WithdrawalModal({
   const [withdrawalDetails, setWithdrawalDetails] = useState<
     Record<string, string>
   >({});
-  const [countdown, setCountdown] = useState<number | null>(null);
   const { toast } = useToast();
   const { user, profile } = useAppSelector((state) => state.auth);
   const userData = profile || user;
@@ -187,6 +182,16 @@ export default function WithdrawalModal({
   };
 
   const handleSubmit = async (e: React.SyntheticEvent) => {
+<<<<<<< HEAD
+    console.log("=== WITHDRAWAL HANDLE SUBMIT START ===", {
+      selectedMethod,
+      amount,
+      hasUser: !!user,
+      userId: user?.id,
+      stripeAccountId: userData?.stripe_account_id,
+    });
+=======
+>>>>>>> origin/main
     e.preventDefault();
     if (!selectedMethod || !amount || parseFloat(amount) <= 0) {
       toast({
@@ -234,6 +239,22 @@ export default function WithdrawalModal({
       return;
     }
 
+<<<<<<< HEAD
+    // Check if Stripe Connect is configured before proceeding
+    if (!userData?.stripe_account_id) {
+      toast({
+        title: "⚠️ Conta Stripe Connect Necessária",
+        description: "Você precisa configurar sua conta Stripe Connect antes de solicitar um saque. Acesse as configurações do Stripe para completar o cadastro.",
+        variant: "destructive",
+        duration: 8000, // 8 segundos para dar tempo de ler
+      });
+      return;
+    }
+
+    console.log("Stripe account OK, proceeding with withdrawal");
+
+=======
+>>>>>>> origin/main
     setIsLoading(true);
 
     try {
@@ -242,6 +263,11 @@ export default function WithdrawalModal({
         withdrawal_method: selectedMethod,
         withdrawal_details: withdrawalDetails,
       };
+<<<<<<< HEAD
+      console.log("Sending withdrawal request", requestData);
+      
+=======
+>>>>>>> origin/main
       const response = await apiClient.post("/freelancer/withdrawals", requestData);
       console.log("Withdrawal response received", response.data);
 
@@ -270,43 +296,25 @@ export default function WithdrawalModal({
     } catch (error: any) {
       console.error("Error creating withdrawal:", error);
       
-      const errorData = error.response?.data || {};
-      const errorMessage = errorData.message || "Erro ao solicitar saque";
-      const actionRequired = errorData.action_required;
-      const blocked = errorData.blocked;
+      // Enhanced error toast with helpful guidance
+      const errorMessage = error.response?.data?.message || "Erro ao solicitar saque";
+      let helpfulMessage = errorMessage;
       
-      // Check if Stripe setup is required
-      if (actionRequired === "stripe_setup" && blocked) {
-        // Start countdown
-        setCountdown(5);
-        
-        // Show error toast with countdown
-        toast({
-          title: "⚠️ Configuração Stripe Necessária",
-          description: errorMessage,
-          variant: "destructive",
-          duration: 6000,
-        });
-      } else {
-        // Enhanced error toast with helpful guidance for other errors
-        let helpfulMessage = errorMessage;
-        
-        if (errorMessage.includes("Saldo insuficiente")) {
-          helpfulMessage = "Seu saldo disponível não é suficiente para este saque. Verifique seu saldo e tente novamente.";
-        } else if (errorMessage.includes("muitos saques pendentes")) {
-          helpfulMessage = "Você tem muitos saques pendentes. Aguarde o processamento dos saques atuais antes de solicitar um novo.";
-        } else if (errorMessage.includes("Valor deve estar entre")) {
-          helpfulMessage = errorMessage;
-        }
-        
-        toast({
-          title: "❌ Erro ao Solicitar Saque",
-          description: `${helpfulMessage}\n\n` +
-            `💡 Se o problema persistir, entre em contato com o suporte.`,
-          variant: "destructive",
-          duration: 6000,
-        });
+      if (errorMessage.includes("Saldo insuficiente")) {
+        helpfulMessage = "Seu saldo disponível não é suficiente para este saque. Verifique seu saldo e tente novamente.";
+      } else if (errorMessage.includes("muitos saques pendentes")) {
+        helpfulMessage = "Você tem muitos saques pendentes. Aguarde o processamento dos saques atuais antes de solicitar um novo.";
+      } else if (errorMessage.includes("Valor deve estar entre")) {
+        helpfulMessage = errorMessage;
       }
+      
+      toast({
+        title: "❌ Erro ao Solicitar Saque",
+        description: `${helpfulMessage}\n\n` +
+          `💡 Se o problema persistir, entre em contato com o suporte.`,
+        variant: "destructive",
+        duration: 6000,
+      });
     } finally {
       setIsLoading(false);
     }
@@ -316,41 +324,7 @@ export default function WithdrawalModal({
     setAmount("");
     setSelectedMethod("");
     setWithdrawalDetails({});
-    setCountdown(null);
   };
-
-  // Cleanup countdown on unmount or modal close
-  useEffect(() => {
-    if (!isOpen) {
-      setCountdown(null);
-    }
-  }, [isOpen]);
-
-  // Handle countdown and redirect
-  useEffect(() => {
-    if (countdown !== null && countdown > 0) {
-      const countdownInterval = setInterval(() => {
-        setCountdown((prev) => {
-          if (prev === null || prev <= 1) {
-            // Close modal first
-            onClose();
-            // Navigate to Stripe Connect page
-            setTimeout(() => {
-              if (setComponent) {
-                setComponent("Configuração Stripe");
-              } else {
-                navigate("/creator/stripe-connect");
-              }
-            }, 100);
-            return null;
-          }
-          return prev - 1;
-        });
-      }, 1000);
-
-      return () => clearInterval(countdownInterval);
-    }
-  }, [countdown, onClose, setComponent, navigate]);
 
   const handleClose = () => {
     if (!isLoading) {
@@ -698,19 +672,9 @@ export default function WithdrawalModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-md max-h-[90vh] flex flex-col z-[100]">
+      <DialogContent className="sm:max-w-md max-h-[90vh] flex flex-col">
         <DialogHeader>
           <DialogTitle>Solicitar Saque</DialogTitle>
-          {countdown !== null && countdown > 0 && (
-            <div className="mt-2 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
-              <div className="flex items-center gap-2 text-red-800 dark:text-red-200">
-                <AlertTriangle className="h-4 w-4" />
-                <span className="text-sm font-medium">
-                  Redirecionando para configuração do Stripe em {countdown} segundo{countdown !== 1 ? 's' : ''}...
-                </span>
-              </div>
-            </div>
-          )}
         </DialogHeader>
 
         <div className="mt-2 p-3 bg-amber-50 border border-amber-200 rounded-lg mx-6">
@@ -876,6 +840,10 @@ export default function WithdrawalModal({
           <Button
             type="button"
             onClick={(e) => {
+<<<<<<< HEAD
+              console.log("=== WITHDRAWAL CONFIRM BUTTON CLICKED ===");
+=======
+>>>>>>> origin/main
               handleSubmit(e);
             }}
             disabled={
