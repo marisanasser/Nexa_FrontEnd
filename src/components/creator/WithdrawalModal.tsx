@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Dialog,
   DialogContent,
@@ -44,7 +45,7 @@ interface WithdrawalMethod {
   fee: number;
   required_fields?: string[];
   field_config?: Record<string, any>;
-  // Stripe payment method fields (optional)
+  
   stripe_payment_method_id?: string;
   stripe_customer_id?: string;
   card_brand?: string;
@@ -98,6 +99,7 @@ interface WithdrawalModalProps {
   onClose: () => void;
   balance: CreatorBalance;
   onWithdrawalCreated: () => void;
+  setComponent?: (component: string) => void;
 }
 
 export default function WithdrawalModal({
@@ -105,7 +107,9 @@ export default function WithdrawalModal({
   onClose,
   balance,
   onWithdrawalCreated,
+  setComponent,
 }: WithdrawalModalProps) {
+  const navigate = useNavigate();
   const [withdrawalMethods, setWithdrawalMethods] = useState<
     WithdrawalMethod[]
   >([]);
@@ -116,6 +120,7 @@ export default function WithdrawalModal({
   const [withdrawalDetails, setWithdrawalDetails] = useState<
     Record<string, string>
   >({});
+  const [countdown, setCountdown] = useState<number | null>(null);
   const { toast } = useToast();
   const { user, profile } = useAppSelector((state) => state.auth);
   const userData = profile || user;
@@ -140,13 +145,13 @@ export default function WithdrawalModal({
         console.log("Withdrawal methods received:", response.data.data);
         console.log("Methods count:", response.data.data.length);
         
-        // Deduplicate methods by ID to prevent duplicate keys
+        
         const uniqueMethods = response.data.data.reduce((acc: WithdrawalMethod[], method: WithdrawalMethod) => {
           const existingIndex = acc.findIndex((m) => m.id === method.id);
           if (existingIndex === -1) {
             acc.push(method);
           } else {
-            // If duplicate found, prefer the one with stripe_payment_method_id (user-specific)
+            
             if (method.stripe_payment_method_id && !acc[existingIndex].stripe_payment_method_id) {
               acc[existingIndex] = method;
             }
@@ -155,7 +160,7 @@ export default function WithdrawalModal({
         }, []);
         
         console.log("Unique methods count:", uniqueMethods.length);
-        // Log each method to see what's included
+        
         uniqueMethods.forEach((method: WithdrawalMethod, index: number) => {
           console.log(`Method ${index}:`, {
             id: method.id,
@@ -182,16 +187,6 @@ export default function WithdrawalModal({
   };
 
   const handleSubmit = async (e: React.SyntheticEvent) => {
-<<<<<<< HEAD
-    console.log("=== WITHDRAWAL HANDLE SUBMIT START ===", {
-      selectedMethod,
-      amount,
-      hasUser: !!user,
-      userId: user?.id,
-      stripeAccountId: userData?.stripe_account_id,
-    });
-=======
->>>>>>> origin/main
     e.preventDefault();
     if (!selectedMethod || !amount || parseFloat(amount) <= 0) {
       toast({
@@ -239,22 +234,6 @@ export default function WithdrawalModal({
       return;
     }
 
-<<<<<<< HEAD
-    // Check if Stripe Connect is configured before proceeding
-    if (!userData?.stripe_account_id) {
-      toast({
-        title: "⚠️ Conta Stripe Connect Necessária",
-        description: "Você precisa configurar sua conta Stripe Connect antes de solicitar um saque. Acesse as configurações do Stripe para completar o cadastro.",
-        variant: "destructive",
-        duration: 8000, // 8 segundos para dar tempo de ler
-      });
-      return;
-    }
-
-    console.log("Stripe account OK, proceeding with withdrawal");
-
-=======
->>>>>>> origin/main
     setIsLoading(true);
 
     try {
@@ -263,11 +242,6 @@ export default function WithdrawalModal({
         withdrawal_method: selectedMethod,
         withdrawal_details: withdrawalDetails,
       };
-<<<<<<< HEAD
-      console.log("Sending withdrawal request", requestData);
-      
-=======
->>>>>>> origin/main
       const response = await apiClient.post("/freelancer/withdrawals", requestData);
       console.log("Withdrawal response received", response.data);
 
@@ -277,7 +251,7 @@ export default function WithdrawalModal({
         const totalFees = calculateTotalFees();
         const processingTime = selectedMethodData?.processing_time || "1-3 dias úteis";
         
-        // Show success toast with detailed information
+        
         toast({
           title: "✅ Saque Solicitado com Sucesso!",
           description: `${formatCurrency(amount)} via ${selectedMethodData?.name || withdrawalData.method}\n\n` +
@@ -296,25 +270,43 @@ export default function WithdrawalModal({
     } catch (error: any) {
       console.error("Error creating withdrawal:", error);
       
-      // Enhanced error toast with helpful guidance
-      const errorMessage = error.response?.data?.message || "Erro ao solicitar saque";
-      let helpfulMessage = errorMessage;
+      const errorData = error.response?.data || {};
+      const errorMessage = errorData.message || "Erro ao solicitar saque";
+      const actionRequired = errorData.action_required;
+      const blocked = errorData.blocked;
       
-      if (errorMessage.includes("Saldo insuficiente")) {
-        helpfulMessage = "Seu saldo disponível não é suficiente para este saque. Verifique seu saldo e tente novamente.";
-      } else if (errorMessage.includes("muitos saques pendentes")) {
-        helpfulMessage = "Você tem muitos saques pendentes. Aguarde o processamento dos saques atuais antes de solicitar um novo.";
-      } else if (errorMessage.includes("Valor deve estar entre")) {
-        helpfulMessage = errorMessage;
+      
+      if (actionRequired === "stripe_setup" && blocked) {
+        
+        setCountdown(5);
+        
+        
+        toast({
+          title: "⚠️ Configuração Stripe Necessária",
+          description: errorMessage,
+          variant: "destructive",
+          duration: 6000,
+        });
+      } else {
+        
+        let helpfulMessage = errorMessage;
+        
+        if (errorMessage.includes("Saldo insuficiente")) {
+          helpfulMessage = "Seu saldo disponível não é suficiente para este saque. Verifique seu saldo e tente novamente.";
+        } else if (errorMessage.includes("muitos saques pendentes")) {
+          helpfulMessage = "Você tem muitos saques pendentes. Aguarde o processamento dos saques atuais antes de solicitar um novo.";
+        } else if (errorMessage.includes("Valor deve estar entre")) {
+          helpfulMessage = errorMessage;
+        }
+        
+        toast({
+          title: "❌ Erro ao Solicitar Saque",
+          description: `${helpfulMessage}\n\n` +
+            `💡 Se o problema persistir, entre em contato com o suporte.`,
+          variant: "destructive",
+          duration: 6000,
+        });
       }
-      
-      toast({
-        title: "❌ Erro ao Solicitar Saque",
-        description: `${helpfulMessage}\n\n` +
-          `💡 Se o problema persistir, entre em contato com o suporte.`,
-        variant: "destructive",
-        duration: 6000,
-      });
     } finally {
       setIsLoading(false);
     }
@@ -324,7 +316,41 @@ export default function WithdrawalModal({
     setAmount("");
     setSelectedMethod("");
     setWithdrawalDetails({});
+    setCountdown(null);
   };
+
+  
+  useEffect(() => {
+    if (!isOpen) {
+      setCountdown(null);
+    }
+  }, [isOpen]);
+
+  
+  useEffect(() => {
+    if (countdown !== null && countdown > 0) {
+      const countdownInterval = setInterval(() => {
+        setCountdown((prev) => {
+          if (prev === null || prev <= 1) {
+            
+            onClose();
+            
+            setTimeout(() => {
+              if (setComponent) {
+                setComponent("Configuração Stripe");
+              } else {
+                navigate("/creator/stripe-connect");
+              }
+            }, 100);
+            return null;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+
+      return () => clearInterval(countdownInterval);
+    }
+  }, [countdown, onClose, setComponent, navigate]);
 
   const handleClose = () => {
     if (!isLoading) {
@@ -358,7 +384,7 @@ export default function WithdrawalModal({
   const renderMethodFields = () => {
     if (!selectedMethodData) return null;
 
-    // For Pagar.me bank transfer, no additional fields are needed
+    
     if (selectedMethodData.id === 'pagarme_bank_transfer') {
       return (
         <div className="space-y-3">
@@ -382,7 +408,7 @@ export default function WithdrawalModal({
       );
     }
 
-    // Use dynamic field configuration if available
+    
     if (selectedMethodData.field_config) {
       return (
         <div className="space-y-3">
@@ -431,7 +457,7 @@ export default function WithdrawalModal({
       );
     }
 
-    // Fallback to hardcoded fields for backward compatibility
+    
     switch (selectedMethodData.id) {
       case "pix":
         return (
@@ -637,18 +663,18 @@ export default function WithdrawalModal({
   const calculateFee = () => {
     if (!selectedMethodData || !amount) return 0;
     
-    // Check if the method has a fixed fee or percentage fee
+    
     if (selectedMethodData.id === 'pix') {
-      // PIX has a fixed fee
+      
       return selectedMethodData.fee;
     } else {
-      // Other methods have percentage fees
+      
       return (parseFloat(amount) * selectedMethodData.fee) / 100;
     }
   };
 
   const calculateFixedFee = () => {
-    return 5.00; // R$5 fixed platform fee
+    return 5.00; 
   };
 
   const calculateTotalFees = () => {
@@ -672,9 +698,19 @@ export default function WithdrawalModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-md max-h-[90vh] flex flex-col">
+      <DialogContent className="sm:max-w-md max-h-[90vh] flex flex-col z-[100]">
         <DialogHeader>
           <DialogTitle>Solicitar Saque</DialogTitle>
+          {countdown !== null && countdown > 0 && (
+            <div className="mt-2 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+              <div className="flex items-center gap-2 text-red-800 dark:text-red-200">
+                <AlertTriangle className="h-4 w-4" />
+                <span className="text-sm font-medium">
+                  Redirecionando para configuração do Stripe em {countdown} segundo{countdown !== 1 ? 's' : ''}...
+                </span>
+              </div>
+            </div>
+          )}
         </DialogHeader>
 
         <div className="mt-2 p-3 bg-amber-50 border border-amber-200 rounded-lg mx-6">
@@ -704,7 +740,7 @@ export default function WithdrawalModal({
           }}
         >
           <form onSubmit={handleSubmit} className="space-y-6 pb-4">
-            {/* Balance Info */}
+            {}
             <Card>
               <CardHeader className="pb-3">
                 <CardTitle className="text-lg flex items-center gap-2">
@@ -735,7 +771,7 @@ export default function WithdrawalModal({
             </Card>
 
 
-            {/* Amount Input */}
+            {}
             <div className="space-y-3">
               <Label htmlFor="amount">Valor do Saque</Label>
               <Input
@@ -762,10 +798,10 @@ export default function WithdrawalModal({
               </div>
             </div>
 
-            {/* Method Specific Fields */}
+            {}
             {selectedMethod && renderMethodFields()}
 
-            {/* Fee Calculation */}
+            {}
             {selectedMethodData && amount && (
               <Card>
                 <CardHeader className="pb-3">
@@ -811,7 +847,7 @@ export default function WithdrawalModal({
               </Card>
             )}
 
-            {/* Warning */}
+            {}
             <div className="flex items-start gap-3 p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
               <AlertTriangle className="h-5 w-5 text-yellow-600 mt-0.5" />
               <div className="space-y-1">
@@ -829,7 +865,7 @@ export default function WithdrawalModal({
             </div>
           </form>
           
-          {/* Scroll indicator gradient */}
+          {}
           <div className="absolute bottom-0 left-0 right-2 h-4 bg-gradient-to-t from-background to-transparent pointer-events-none" />
         </div>
 
@@ -840,10 +876,6 @@ export default function WithdrawalModal({
           <Button
             type="button"
             onClick={(e) => {
-<<<<<<< HEAD
-              console.log("=== WITHDRAWAL CONFIRM BUTTON CLICKED ===");
-=======
->>>>>>> origin/main
               handleSubmit(e);
             }}
             disabled={
