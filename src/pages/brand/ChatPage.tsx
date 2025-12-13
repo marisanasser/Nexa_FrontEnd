@@ -1133,7 +1133,17 @@ export default function ChatPage({ setComponent, campaignId, creatorId }: ChatPa
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedRoom || (!input.trim() && !selectedFile) || isUploading) return;
+    const trimmed = input.trim();
+    if (!selectedRoom || (!trimmed && !selectedFile) || isUploading) return;
+
+    if (isMountedRef.current) {
+      setInput("");
+      if (inputRef.current) {
+        inputRef.current.style.height = "auto";
+      }
+    }
+
+    let tempId: number | null = null;
 
     try {
       let newMessage: Message;
@@ -1155,10 +1165,10 @@ export default function ChatPage({ setComponent, campaignId, creatorId }: ChatPa
 
         newMessage = await sendMessage(
           selectedRoom.room_id,
-          input.trim(), 
+          trimmed, 
           selectedFile
         );
-        
+
         clearInterval(progressInterval);
         setUploadProgress(100);
         
@@ -1167,19 +1177,29 @@ export default function ChatPage({ setComponent, campaignId, creatorId }: ChatPa
           setFilePreview(null);
         }
       } else {
-        newMessage = await sendMessage(selectedRoom.room_id, input.trim());
+        tempId = Date.now();
+        const optimisticMessage: Message = {
+          id: tempId,
+          message: trimmed,
+          message_type: 'text',
+          sender_id: user?.id || 0,
+          sender_name: user?.name || '',
+          sender_avatar: user?.avatar_url,
+          is_sender: true,
+          is_read: false,
+          created_at: new Date().toISOString(),
+        };
+
+        setMessages(prev => [...prev, optimisticMessage]);
+
+        newMessage = await sendMessage(selectedRoom.room_id, trimmed);
+
+        setMessages(prev => prev.map(m =>
+          m.id === tempId ? { ...newMessage, is_sender: true } as any : m
+        ));
       }
 
       if (isMountedRef.current) {
-        
-        
-        setMessages(prev => {
-          const updated = [...prev, newMessage];
-          return updated;
-        });
-        setInput("");
-
-        
         if (typingTimeoutRef.current) {
           clearTimeout(typingTimeoutRef.current);
           typingTimeoutRef.current = null;
@@ -1188,6 +1208,9 @@ export default function ChatPage({ setComponent, campaignId, creatorId }: ChatPa
         stopTyping(selectedRoom.room_id);
       }
     } catch (error) {
+      if (tempId !== null) {
+        setMessages(prev => prev.filter(m => m.id !== tempId));
+      }
       console.error("[ChatPage] Error sending message:", error);
       toast({
         title: "Erro ao enviar mensagem",

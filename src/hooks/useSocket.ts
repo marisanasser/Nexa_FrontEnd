@@ -101,12 +101,37 @@ export const useSocket = (options: UseSocketOptions = {}): UseSocketReturn => {
             }
         }
 
-        // Setup notification channel
         if (enableNotifications && user.id) {
             const channelName = `App.Models.User.${user.id}`;
             if (!activeChannelsRef.current.has(channelName)) {
                 echo.private(channelName)
                     .listen('.new_notification', (data: any) => {
+                        const isChatNotification =
+                            data?.type === 'new_message' &&
+                            data?.data &&
+                            (data.data.chat_type === 'campaign' || data.data.chat_type === 'direct');
+
+                        let isOnChatPage = false;
+                        if (typeof window !== 'undefined') {
+                            const { pathname, search } = window.location;
+                            const hasChatInPath = pathname.includes('/chat');
+                            let hasChatComponent = false;
+
+                            if (search) {
+                                const params = new URLSearchParams(search);
+                                const componentParam = params.get('component');
+                                if (componentParam === 'chat' || componentParam === 'Chat') {
+                                    hasChatComponent = true;
+                                }
+                            }
+
+                            isOnChatPage = hasChatInPath || hasChatComponent;
+                        }
+
+                        if (isChatNotification && isOnChatPage) {
+                            return;
+                        }
+
                         dispatch(addNotification(data));
                         if (!data.is_read) {
                             dispatch(incrementUnreadCount());

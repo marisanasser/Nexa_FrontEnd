@@ -657,15 +657,24 @@ export default function Chat() {
   
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedRoom || (!input.trim() && !selectedFile) || isUploading) return;
+    const trimmed = input.trim();
+    if (!selectedRoom || (!trimmed && !selectedFile) || isUploading) return;
     
+    if (isMountedRef.current) {
+      setInput("");
+      if (inputRef.current) {
+        inputRef.current.style.height = "auto";
+      }
+    }
+
+    let tempId: number | null = null;
+
     try {
       let newMessage: Message;
       
       if (selectedFile) {
         setIsUploading(true);
         setUploadProgress(0);
-        
         
         const progressInterval = setInterval(() => {
           setUploadProgress(prev => {
@@ -679,28 +688,26 @@ export default function Chat() {
 
         newMessage = await sendMessage(
           selectedRoom.room_id,
-          input.trim(), 
+          trimmed, 
           selectedFile
         );
-        console.log(newMessage)
+        console.log(newMessage);
         clearInterval(progressInterval);
-        setUploadProgress(100)
+        setUploadProgress(100);
         if (isMountedRef.current) {
           setSelectedFile(null);
           setFilePreview(null);
         }
       } else {
-        
-        const tempId = Date.now();
+        tempId = Date.now();
         const optimisticMessage: Message = {
           id: tempId,
-          message: input.trim(),
+          message: trimmed,
           message_type: 'text',
           sender_id: user?.id || 0,
           sender_name: user?.name || '',
           sender_avatar: user?.avatar_url,
           is_sender: true,
-          
           is_read: false,
           sent: true,
           pending: true,
@@ -709,24 +716,18 @@ export default function Chat() {
 
         setMessages((prev) => [...prev, optimisticMessage]);
 
-        
-        newMessage = await sendMessage(selectedRoom.room_id, input.trim());
+        newMessage = await sendMessage(selectedRoom.room_id, trimmed);
 
-        
         setMessages((prev) => prev.map(m =>
           m.id === tempId ? { ...newMessage, is_sender: true, sent: true, pending: false } as any : m
         ));
       }
 
       if (isMountedRef.current) {
-        
         if (newMessage.id) {
           (window as any).lastSentMessageId = newMessage.id;
         }
-        
-        setInput("");
 
-        
         if (typingTimeoutRef.current) {
           clearTimeout(typingTimeoutRef.current);
           typingTimeoutRef.current = null;
@@ -734,7 +735,6 @@ export default function Chat() {
         setIsCurrentUserTyping(false);
         stopTyping(selectedRoom.room_id);
 
-        
         setTimeout(() => {
           if (inputRef.current && isMountedRef.current) {
             inputRef.current.focus();
@@ -742,6 +742,9 @@ export default function Chat() {
         }, 100);
       }
     } catch (error) {
+      if (tempId !== null) {
+        setMessages((prev) => prev.filter(m => m.id !== tempId));
+      }
       console.error("Error sending message:", error);
       toast({
         title: "Erro ao enviar mensagem",
