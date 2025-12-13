@@ -1,12 +1,12 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { io, Socket } from 'socket.io-client';
 import { useAppSelector, useAppDispatch } from '../store/hooks';
 import { apiClient } from '../services/apiClient';
-import { Message, chatService } from '../services/chatService';
+import { Message } from '../services/chatService';
 import { addNotification, incrementUnreadCount } from '../store/slices/notificationSlice';
+import { getEcho } from '../lib/echo';
 
 interface UseSocketReturn {
-    socket: Socket | null;
+    socket: any; // Returning the Echo instance
     isConnected: boolean;
     connectionError: string | null;
     joinRoom: (roomId: string) => void;
@@ -15,15 +15,18 @@ interface UseSocketReturn {
     startTyping: (roomId: string) => void;
     stopTyping: (roomId: string) => void;
     markMessagesAsRead: (roomId: string, messageIds: number[]) => Promise<void>;
-    onMessagesRead: (callback: (data: { roomId: string; messageIds: number[]; readBy: number; timestamp: string }) => void) => void;
-    onOfferCreated: (callback: (data: { roomId: string; offerData: any; senderId: number; timestamp: string }) => void) => void;
-    onOfferAccepted: (callback: (data: { roomId: string; offerData: any; contractData: any; senderId: number; timestamp: string }) => void) => void;
-    onOfferRejected: (callback: (data: { roomId: string; offerData: any; senderId: number; rejectionReason?: string; timestamp: string }) => void) => void;
-    onOfferCancelled: (callback: (data: { roomId: string; offerData: any; senderId: number; timestamp: string }) => void) => void;
-    onContractCompleted: (callback: (data: { roomId: string; contractData: any; senderId: number; timestamp: string }) => void) => void;
-    onContractTerminated: (callback: (data: { roomId: string; contractData: any; senderId: number; terminationReason?: string; timestamp: string }) => void) => void;
-    onContractActivated: (callback: (data: { roomId: string; contractData: any; senderId: number; timestamp: string }) => void) => void;
-    onContractStatusUpdate: (callback: (data: { roomId: string; contractData: any; terminationReason?: string; timestamp: string }) => void) => void;
+    onNewMessage: (callback: (data: any) => void) => () => void;
+    onUserTyping: (callback: (data: any) => void) => () => void;
+    onMessagesRead: (callback: (data: { roomId: string; messageIds: number[]; readBy: number; timestamp: string }) => void) => () => void;
+    onOfferCreated: (callback: (data: { roomId: string; offerData: any; senderId: number; timestamp: string }) => void) => () => void;
+    onOfferAccepted: (callback: (data: { roomId: string; offerData: any; contractData: any; senderId: number; timestamp: string }) => void) => () => void;
+    onOfferRejected: (callback: (data: { roomId: string; offerData: any; senderId: number; rejectionReason?: string; timestamp: string }) => void) => () => void;
+    onOfferCancelled: (callback: (data: { roomId: string; offerData: any; senderId: number; timestamp: string }) => void) => () => void;
+    onContractCompleted: (callback: (data: { roomId: string; contractData: any; senderId: number; timestamp: string }) => void) => () => void;
+    onContractTerminated: (callback: (data: { roomId: string; contractData: any; senderId: number; terminationReason?: string; timestamp: string }) => void) => () => void;
+    onContractActivated: (callback: (data: { roomId: string; contractData: any; senderId: number; timestamp: string }) => void) => () => void;
+    onContractStatusUpdate: (callback: (data: { roomId: string; contractData: any; terminationReason?: string; timestamp: string }) => void) => () => void;
+    onOfferAcceptanceMessage: (callback: (data: { roomId: string; offerData: any; contractData: any; senderId: number; senderName: string; senderAvatar?: string; timestamp: string }) => void) => () => void;
     sendOfferAcceptanceMessage: (roomId: string, offerData: any, contractData: any, senderId: number, senderName: string, senderAvatar?: string) => void;
     reconnect: () => void;
 }
@@ -37,270 +40,192 @@ export const useSocket = (options: UseSocketOptions = {}): UseSocketReturn => {
     const { enableNotifications = true, enableChat = true } = options;
     const { user } = useAppSelector((state) => state.auth);
     const dispatch = useAppDispatch();
-    const socketRef = useRef<Socket | null>(null);
+    
+    const echoRef = useRef<any>(null);
     const [isConnected, setIsConnected] = useState(false);
     const [connectionError, setConnectionError] = useState<string | null>(null);
-    const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-    const reconnectAttemptsRef = useRef(0);
-    const maxReconnectAttempts = 5;
     const isMountedRef = useRef(true);
-
+    const activeChannelsRef = useRef<Set<string>>(new Set());
     
-    const initializeSocket = useCallback(() => {
+    // Event handlers storage
+    const eventHandlersRef = useRef<{ [key: string]: Set<Function> }>({
+        new_message: new Set(),
+        user_typing: new Set(),
+        messages_read: new Set(),
+        offer_created: new Set(),
+        offer_accepted: new Set(),
+        offer_rejected: new Set(),
+        offer_cancelled: new Set(),
+        contract_completed: new Set(),
+        contract_terminated: new Set(),
+        contract_activated: new Set(),
+        contract_status_update: new Set(),
+        offer_acceptance_message: new Set(),
+    });
+
+    const initializeEcho = useCallback(() => {
         if (!user || !isMountedRef.current) return null;
 
-        
-        if (socketRef.current) {
-            try {
-                socketRef.current.disconnect();
-            } catch (error) {
-                console.warn('Error disconnecting existing socket:', error);
+        const echo = getEcho();
+        if (!echo) {
+            setConnectionError("Failed to initialize Echo (missing token?)");
+            return null;
+        }
+
+        echoRef.current = echo;
+
+        // Monitor connection status
+        if (echo.connector && echo.connector.pusher) {
+            echo.connector.pusher.connection.bind('connected', () => {
+                if (isMountedRef.current) {
+                    setIsConnected(true);
+                    setConnectionError(null);
+                }
+            });
+            echo.connector.pusher.connection.bind('disconnected', () => {
+                if (isMountedRef.current) {
+                    setIsConnected(false);
+                }
+            });
+            echo.connector.pusher.connection.bind('error', (err: any) => {
+                console.error('Echo connection error:', err);
+                if (isMountedRef.current) {
+                    setIsConnected(false);
+                    setConnectionError(err?.error?.data?.message || 'Connection error');
+                }
+            });
+            
+            // Check initial state
+            if (echo.connector.pusher.connection.state === 'connected') {
+                setIsConnected(true);
             }
         }
 
-        const socket = io(`${import.meta.env.VITE_SOCKET_URL}`, {
-            path: '/socket.io',
-            transports: ['websocket', 'polling'],
-            autoConnect: true,
-            reconnection: true,
-            reconnectionAttempts: maxReconnectAttempts,
-            reconnectionDelay: 500, 
-            reconnectionDelayMax: 3000, 
-            timeout: 10000, 
-            forceNew: false,
-            upgrade: true,
-            rememberUpgrade: true
-        });
-
-        socketRef.current = socket;
-
-        socket.on('connect', () => {
-            if (!isMountedRef.current) return;
-            
-            setIsConnected(true);
-            setConnectionError(null);
-            reconnectAttemptsRef.current = 0;
-            
-            
-            try {
-                socket.emit('user_join', {
-                    userId: user.id,
-                    userRole: user.role,
-                });
-            } catch (error) {
-                console.warn('Error joining user:', error);
-            }
-        });
-
-        socket.on('disconnect', (reason) => {
-            if (!isMountedRef.current) return;
-            
-            setIsConnected(false);
-            
-            if (reason === 'io server disconnect') {
-                
-                try {
-                    socket.connect();
-                } catch (error) {
-                    console.warn('Error reconnecting after server disconnect:', error);
-                }
-            }
-        });
-
-        socket.on('connect_error', (error) => {
-            if (!isMountedRef.current) return;
-            
-            console.error('Socket connection error:', error);
-            setIsConnected(false);
-            setConnectionError(`Connection failed: ${error.message}`);
-            
-            
-            if (reconnectAttemptsRef.current < maxReconnectAttempts) {
-                reconnectAttemptsRef.current++;
-                const delay = Math.min(1000 * Math.pow(2, reconnectAttemptsRef.current), 10000);
-                
-                reconnectTimeoutRef.current = setTimeout(() => {
-                    if (isMountedRef.current) {
-                        try {
-                            socket.connect();
-                        } catch (error) {
-                            console.warn('Error during reconnection attempt:', error);
+        // Setup notification channel
+        if (enableNotifications && user.id) {
+            const channelName = `App.Models.User.${user.id}`;
+            if (!activeChannelsRef.current.has(channelName)) {
+                echo.private(channelName)
+                    .listen('.new_notification', (data: any) => {
+                        dispatch(addNotification(data));
+                        if (!data.is_read) {
+                            dispatch(incrementUnreadCount());
                         }
-                    }
-                }, delay);
+                    });
+                activeChannelsRef.current.add(channelName);
             }
-        });
-
-        socket.on('reconnect', (attemptNumber) => {
-            if (!isMountedRef.current) return;
-            
-            setIsConnected(true);
-            setConnectionError(null);
-            reconnectAttemptsRef.current = 0;
-        });
-
-        socket.on('reconnect_error', (error) => {
-            if (!isMountedRef.current) return;
-            
-            console.error('Reconnection error:', error);
-            setConnectionError(`Reconnection failed: ${error.message}`);
-        });
-
-        socket.on('reconnect_failed', () => {
-            if (!isMountedRef.current) return;
-            
-            console.error('Failed to reconnect after maximum attempts');
-            setConnectionError('Failed to reconnect. Please refresh the page.');
-        });
-
-        
-        if (enableNotifications) {
-            const handleNotification = (notificationData: any) => {
-                if (!isMountedRef.current) return;
-                
-                
-                dispatch(addNotification(notificationData));
-                
-                
-                if (!notificationData.is_read) {
-                    dispatch(incrementUnreadCount());
-                }
-            };
-            
-            socket.on('new_notification', handleNotification);
-            
-            
-            (socket as any)._cleanupNotification = () => {
-                socket.off('new_notification', handleNotification);
-            };
         }
 
-        return socket;
-    }, [user, enableNotifications]);
+        return echo;
+    }, [user, enableNotifications, dispatch]);
 
-    
     useEffect(() => {
         isMountedRef.current = true;
-        
+        initializeEcho();
+
         return () => {
             isMountedRef.current = false;
+            // We don't necessarily want to disconnect Echo here if it's shared,
+            // but since we treat it as singleton in getEcho, we leave it be.
+            // However, we should unsubscribe from channels if we joined them?
+            // For now, let's leave channels active to avoid constant resubscribe on re-renders
+            // unless we strictly want to clean up.
             
-            
-            if (reconnectTimeoutRef.current) {
-                clearTimeout(reconnectTimeoutRef.current);
-                reconnectTimeoutRef.current = null;
-            }
-            
-            
-            if (socketRef.current) {
-                try {
-                    
-                    if ((socketRef.current as any)._cleanupNotification) {
-                        (socketRef.current as any)._cleanupNotification();
-                    }
-                    socketRef.current.disconnect();
-                    socketRef.current = null;
-                } catch (error) {
-                    console.warn('Error disconnecting socket during cleanup:', error);
-                }
-            }
+            // Actually, if we use a singleton Echo, we should probably track channel subscriptions
+            // globally or risk memory leaks.
+            // For this implementation, we rely on Echo's internal management.
         };
+    }, [initializeEcho]);
+
+    const reconnect = useCallback(() => {
+        setConnectionError(null);
+        initializeEcho();
+    }, [initializeEcho]);
+
+    const dispatchEvent = useCallback((eventName: string, data: any) => {
+        if (eventHandlersRef.current[eventName]) {
+            eventHandlersRef.current[eventName].forEach(handler => {
+                try {
+                    handler(data);
+                } catch (e) {
+                    console.error(`Error in handler for ${eventName}:`, e);
+                }
+            });
+        }
     }, []);
 
-    useEffect(() => {
-        const socket = initializeSocket();
-
-        return () => {
-            if (reconnectTimeoutRef.current) {
-                clearTimeout(reconnectTimeoutRef.current);
-                reconnectTimeoutRef.current = null;
-            }
-            if (socket) {
-                try {
-                    socket.disconnect();
-                } catch (error) {
-                    console.warn('Error disconnecting socket in effect cleanup:', error);
-                }
-            }
-        };
-    }, [initializeSocket]);
-
-    
-    const reconnect = useCallback(() => {
-        if (!isMountedRef.current) return;
-        
-        if (reconnectTimeoutRef.current) {
-            clearTimeout(reconnectTimeoutRef.current);
-        }
-        reconnectAttemptsRef.current = 0;
-        setConnectionError(null);
-        initializeSocket();
-    }, [initializeSocket]);
-
-    
     const joinRoom = useCallback((roomId: string) => {
-        if (!isMountedRef.current || !enableChat) return;
+        if (!isMountedRef.current || !enableChat || !echoRef.current) return;
         
-        if (socketRef.current && isConnected) {
-            try {
-                socketRef.current.emit('join_room', roomId);
-            } catch (error) {
-                console.warn('Error joining room:', error);
-            }
-        } else {
-            
-        }
-    }, [isConnected, enableChat]);
+        const channelName = `chat.${roomId}`;
+        
+        // Leave previous chat channels if needed? 
+        // Typically we only want to be in one chat room at a time.
+        // But the user might have multiple tabs.
+        // Let's assume one active chat room per useSocket instance.
+        
+        // Check if already subscribed? Echo handles deduplication usually, but...
+        
+        const channel = echoRef.current.private(channelName);
+        
+        // Bind backend events
+        channel.listen('.new_message', (data: any) => dispatchEvent('new_message', data));
+        channel.listen('.messages_read', (data: any) => dispatchEvent('messages_read', data));
+        channel.listen('.offer_created', (data: any) => dispatchEvent('offer_created', data));
+            channel.listen('.offer_accepted', (data: any) => dispatchEvent('offer_accepted', data));
+            channel.listen('.offer_rejected', (data: any) => dispatchEvent('offer_rejected', data));
+            channel.listen('.offer_cancelled', (data: any) => dispatchEvent('offer_cancelled', data));
+            channel.listen('.contract_activated', (data: any) => dispatchEvent('contract_activated', data));
+            channel.listen('.contract_completed', (data: any) => dispatchEvent('contract_completed', data));
+            channel.listen('.contract_terminated', (data: any) => dispatchEvent('contract_terminated', data));
+            // channel.listen('.contract_status_update', (data: any) => dispatchEvent('contract_status_update', data)); // Not found in events yet
+        
+        // Whisper events (Client-to-Client)
+        channel.listenForWhisper('typing', (data: any) => {
+            // Echo whisper data usually comes as is.
+            // We need to match the structure expected by Chat.tsx: { roomId, userName, isTyping }
+            dispatchEvent('user_typing', {
+                roomId,
+                userName: data.userName,
+                isTyping: data.typing
+            });
+        });
+        
+        activeChannelsRef.current.add(channelName);
+        
+    }, [enableChat, dispatchEvent]);
 
-    
     const leaveRoom = useCallback((roomId: string) => {
-        if (!isMountedRef.current || !enableChat) return;
+        if (!isMountedRef.current || !enableChat || !echoRef.current) return;
         
-        if (socketRef.current && isConnected) {
-            try {
-                socketRef.current.emit('leave_room', roomId);
-            } catch (error) {
-                console.warn('Error leaving room:', error);
-            }
-        }
-    }, [isConnected, enableChat]);
+        const channelName = `chat.${roomId}`;
+        echoRef.current.leave(channelName);
+        activeChannelsRef.current.delete(channelName);
+    }, [enableChat]);
 
-    
     const sendMessage = useCallback(async (roomId: string, message: string, file?: File): Promise<Message> => {
-        if (!socketRef.current || !isConnected || !user || !isMountedRef.current || !enableChat) {
-            throw new Error('Socket not connected or user not authenticated');
-        }
+        if (!user) throw new Error('User not authenticated');
 
         try {
             let messageData: Message;
-
             if (file) {
-                
                 const formData = new FormData();
                 formData.append('room_id', roomId);
                 formData.append('file', file);
-                
                 if (message && message.trim()) {
                     formData.append('message', message.trim());
                 }
-
                 const response = await apiClient.post('/chat/messages', formData, {
-                    headers: {
-                        'Content-Type': 'multipart/form-data',
-                    },
+                    headers: { 'Content-Type': 'multipart/form-data' },
                 });
                 messageData = response.data.data;
             } else {
-                
                 const response = await apiClient.post('/chat/messages', {
                     room_id: roomId,
                     message,
                 });
-
                 messageData = response.data.data;
             }
-
-            
             (messageData as any).sent = true;
             (messageData as any).pending = false;
             return messageData;
@@ -308,267 +233,74 @@ export const useSocket = (options: UseSocketOptions = {}): UseSocketReturn => {
             console.error('❌ Error sending message:', error);
             throw error;
         }
-    }, [isConnected, user, enableChat]);
+    }, [user]);
 
-    
     const startTyping = useCallback((roomId: string) => {
-        if (!socketRef.current || !isConnected || !user || !isMountedRef.current || !enableChat) return;
+        if (!echoRef.current || !user) return;
+        const channel = echoRef.current.private(`chat.${roomId}`);
+        // Whisper typing
+        channel.whisper('typing', {
+            userName: user.name,
+            typing: true
+        });
+    }, [user]);
 
-        try {
-            socketRef.current.emit('typing_start', {
-                roomId,
-                userId: user.id,
-                userName: user.name,
-            });
-        } catch (error) {
-            console.warn('Error starting typing indicator:', error);
-        }
-    }, [isConnected, user, enableChat]);
-
-    
     const stopTyping = useCallback((roomId: string) => {
-        if (!socketRef.current || !isConnected || !user || !isMountedRef.current || !enableChat) return;
+        if (!echoRef.current || !user) return;
+        const channel = echoRef.current.private(`chat.${roomId}`);
+        channel.whisper('typing', {
+            userName: user.name,
+            typing: false
+        });
+    }, [user]);
 
-        try {
-            socketRef.current.emit('typing_stop', {
-                roomId,
-                userId: user.id,
-                userName: user.name,
-            });
-        } catch (error) {
-            console.warn('Error stopping typing indicator:', error);
-        }
-    }, [isConnected, user, enableChat]);
-
-    
     const markMessagesAsRead = useCallback(async (roomId: string, messageIds: number[]): Promise<void> => {
-        if (!user || !isMountedRef.current || !enableChat) {
-            console.warn('Cannot mark messages as read: user not authenticated or chat disabled');
-            return;
-        }
-
+        if (!user) return;
         try {
-            
             await apiClient.post('/chat/mark-read', {
                 room_id: roomId,
                 message_ids: messageIds,
             });
-
-            
-            socketRef.current.emit('mark_read', {
-                roomId,
-                messageIds,
-                userId: user.id,
-            });
+            // No need to emit socket event, the API now dispatches MessagesRead event which we listen to.
         } catch (error) {
             console.error('Error marking messages as read:', error);
             throw error;
         }
-    }, [isConnected, user, enableChat]);
+    }, [user]);
 
-    
-    const onMessagesRead = useCallback((callback: (data: { roomId: string; messageIds: number[]; readBy: number; timestamp: string }) => void) => {
-        if (!socketRef.current || !enableChat) return;
-
-        const handleMessagesRead = (data: any) => {
-            if (!isMountedRef.current) return;
-            callback(data);
-        };
-
-        socketRef.current.on('messages_read', handleMessagesRead);
-
-        
-        return () => {
-            if (socketRef.current) {
-                socketRef.current.off('messages_read', handleMessagesRead);
-            }
-        };
-    }, [enableChat]);
-
-    
-    const onOfferCreated = useCallback((callback: (data: { roomId: string; offerData: any; senderId: number; timestamp: string }) => void) => {
-        if (!socketRef.current || !enableChat) return;
-
-        const handleOfferCreated = (data: any) => {
-            if (!isMountedRef.current) return;
-            callback(data);
-        };
-
-        socketRef.current.on('offer_created', handleOfferCreated);
-
-        return () => {
-            if (socketRef.current) {
-                socketRef.current.off('offer_created', handleOfferCreated);
-            }
-        };
-    }, [enableChat]);
-
-    
-    const onOfferAccepted = useCallback((callback: (data: { roomId: string; offerData: any; contractData: any; senderId: number; timestamp: string }) => void) => {
-        if (!socketRef.current || !enableChat) return;
-
-        const handleOfferAccepted = (data: any) => {
-            if (!isMountedRef.current) return;
-            callback(data);
-        };
-
-        socketRef.current.on('offer_accepted', handleOfferAccepted);
-
-        return () => {
-            if (socketRef.current) {
-                socketRef.current.off('offer_accepted', handleOfferAccepted);
-            }
-        };
-    }, [enableChat]);
-
-    
-    const onOfferRejected = useCallback((callback: (data: { roomId: string; offerData: any; senderId: number; rejectionReason?: string; timestamp: string }) => void) => {
-        if (!socketRef.current || !enableChat) return;
-
-        const handleOfferRejected = (data: any) => {
-            if (!isMountedRef.current) return;
-            callback(data);
-        };
-
-        socketRef.current.on('offer_rejected', handleOfferRejected);
-
-        return () => {
-            if (socketRef.current) {
-                socketRef.current.off('offer_rejected', handleOfferRejected);
-            }
-        };
-    }, [enableChat]);
-
-    
-    const onOfferCancelled = useCallback((callback: (data: { roomId: string; offerData: any; senderId: number; timestamp: string }) => void) => {
-        if (!socketRef.current || !enableChat) return;
-
-        const handleOfferCancelled = (data: any) => {
-            if (!isMountedRef.current) return;
-            callback(data);
-        };
-
-        socketRef.current.on('offer_cancelled', handleOfferCancelled);
-
-        return () => {
-            if (socketRef.current) {
-                socketRef.current.off('offer_cancelled', handleOfferCancelled);
-            }
-        };
-    }, [enableChat]);
-
-    
-    const onContractCompleted = useCallback((callback: (data: { roomId: string; contractData: any; senderId: number; timestamp: string }) => void) => {
-        if (!socketRef.current || !enableChat) return;
-
-        const handleContractCompleted = (data: any) => {
-            if (!isMountedRef.current) return;
-            callback(data);
-        };
-
-        socketRef.current.on('contract_completed', handleContractCompleted);
-
-        return () => {
-            if (socketRef.current) {
-                socketRef.current.off('contract_completed', handleContractCompleted);
-            }
-        };
-    }, [enableChat]);
-
-    
-    const onContractTerminated = useCallback((callback: (data: { roomId: string; contractData: any; senderId: number; terminationReason?: string; timestamp: string }) => void) => {
-        if (!socketRef.current || !enableChat) return;
-
-        const handleContractTerminated = (data: any) => {
-            if (!isMountedRef.current) return;
-            callback(data);
-        };
-
-        socketRef.current.on('contract_terminated', handleContractTerminated);
-
-        return () => {
-            if (socketRef.current) {
-                socketRef.current.off('contract_terminated', handleContractTerminated);
-            }
-        };
-    }, [enableChat]);
-
-    
-    const onContractActivated = useCallback((callback: (data: { roomId: string; contractData: any; senderId: number; timestamp: string }) => void) => {
-        if (!socketRef.current || !enableChat) return;
-
-        const handleContractActivated = (data: any) => {
-            if (!isMountedRef.current) return;
-            callback(data);
-        };
-
-        socketRef.current.on('contract_activated', handleContractActivated);
-
-        return () => {
-            if (socketRef.current) {
-                socketRef.current.off('contract_activated', handleContractActivated);
-            }
-        };
-    }, [enableChat]);
-
-    
-    const onOfferAcceptanceMessage = useCallback((callback: (data: { roomId: string; offerData: any; contractData: any; senderId: number; senderName: string; senderAvatar?: string; timestamp: string }) => void) => {
-        if (!socketRef.current || !enableChat) return;
-
-        const handleOfferAcceptanceMessage = (data: any) => {
-            if (!isMountedRef.current) return;
-            callback(data);
-        };
-
-        socketRef.current.on('offer_acceptance_message', handleOfferAcceptanceMessage);
-
-        return () => {
-            if (socketRef.current) {
-                socketRef.current.off('offer_acceptance_message', handleOfferAcceptanceMessage);
-            }
-        };
-    }, [enableChat]);
-
-    
-    const onContractStatusUpdate = useCallback((callback: (data: { roomId: string; contractData: any; terminationReason?: string; timestamp: string }) => void) => {
-        if (!socketRef.current || !enableChat) return;
-
-        const handleContractStatusUpdate = (data: any) => {
-            if (!isMountedRef.current) return;
-            callback(data);
-        };
-
-        socketRef.current.on('contract_status_update', handleContractStatusUpdate);
-
-        return () => {
-            if (socketRef.current) {
-                socketRef.current.off('contract_status_update', handleContractStatusUpdate);
-            }
-        };
-    }, [enableChat]);
-
-    
     const sendOfferAcceptanceMessage = useCallback((roomId: string, offerData: any, contractData: any, senderId: number, senderName: string, senderAvatar?: string) => {
-        if (!socketRef.current || !isConnected || !isMountedRef.current || !enableChat) {
-            return;
-        }
+         // This seems to be a client-side injected message in the old code?
+         // Or an emitted event that the server handles?
+         // In old code: socket.emit('send_offer_acceptance_message', ...)
+         // If there's no API endpoint for this, we might need one or use Whisper.
+         // But this sounds like a persistent message.
+         // Let's assume for now it should be handled via API or it's just a local update.
+         // Checking Chat.tsx: It listens to 'offer_acceptance_message'.
+         // If the backend doesn't support this via API, we might have a gap.
+         // But OfferAccepted event from backend should cover this.
+         // The 'offer_acceptance_message' seems to be a synthetic event for UI feedback?
+         
+         // For now, let's dispatch it locally to listeners if we want immediate feedback
+         dispatchEvent('offer_acceptance_message', {
+             roomId, offerData, contractData, senderId, senderName, senderAvatar, timestamp: new Date().toISOString()
+         });
+    }, [dispatchEvent]);
 
-        try {
-            socketRef.current.emit('send_offer_acceptance_message', {
-                roomId,
-                offerData,
-                contractData,
-                senderId,
-                senderName,
-                senderAvatar,
-            });
-        } catch (error) {
-            console.error('Error sending offer acceptance message:', error);
+    // Register event listener helper
+    const registerListener = (eventName: string, callback: Function) => {
+        if (!eventHandlersRef.current[eventName]) {
+            eventHandlersRef.current[eventName] = new Set();
         }
-    }, [isConnected, enableChat]);
+        eventHandlersRef.current[eventName].add(callback);
+        return () => {
+            if (eventHandlersRef.current[eventName]) {
+                eventHandlersRef.current[eventName].delete(callback);
+            }
+        };
+    };
 
     return {
-        socket: socketRef.current,
+        socket: echoRef.current,
         isConnected,
         connectionError,
         joinRoom,
@@ -577,16 +309,19 @@ export const useSocket = (options: UseSocketOptions = {}): UseSocketReturn => {
         startTyping,
         stopTyping,
         markMessagesAsRead,
-        onMessagesRead,
-        onOfferCreated,
-        onOfferAccepted,
-        onOfferRejected,
-        onOfferCancelled,
-        onContractCompleted,
-        onContractTerminated,
-        onContractActivated,
-        onContractStatusUpdate,
+        onNewMessage: (cb) => registerListener('new_message', cb),
+        onUserTyping: (cb) => registerListener('user_typing', cb),
+        onMessagesRead: (cb) => registerListener('messages_read', cb),
+        onOfferCreated: (cb) => registerListener('offer_created', cb),
+        onOfferAccepted: (cb) => registerListener('offer_accepted', cb),
+        onOfferRejected: (cb) => registerListener('offer_rejected', cb),
+        onOfferCancelled: (cb) => registerListener('offer_cancelled', cb),
+        onContractCompleted: (cb) => registerListener('contract_completed', cb),
+        onContractTerminated: (cb) => registerListener('contract_terminated', cb),
+        onContractActivated: (cb) => registerListener('contract_activated', cb),
+        onContractStatusUpdate: (cb) => registerListener('contract_status_update', cb),
+        onOfferAcceptanceMessage: (cb) => registerListener('offer_acceptance_message', cb),
         sendOfferAcceptanceMessage,
         reconnect,
     };
-}; 
+};

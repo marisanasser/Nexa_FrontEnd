@@ -105,7 +105,6 @@ export default function Chat() {
 
   
   const {
-    socket,
     isConnected,
     connectionError,
     joinRoom,
@@ -117,6 +116,9 @@ export default function Chat() {
     reconnect,
     onMessagesRead,
     sendOfferAcceptanceMessage,
+    onNewMessage,
+    onUserTyping,
+    onOfferAcceptanceMessage,
   } = useSocket({ enableNotifications: false, enableChat: true });
   
   useEffect(() => {
@@ -210,7 +212,7 @@ export default function Chat() {
 
   
   useEffect(() => {
-    if (!socket || !isMountedRef.current) return;
+    if (!isMountedRef.current) return;
 
     
     const handleNewMessage = (data: any) => {
@@ -250,6 +252,7 @@ export default function Chat() {
               const copy = [...prev];
               copy[idx] = { ...newMessage, is_sender: true, sent: true } as any;
               return copy;
+              
             }
           }
 
@@ -339,41 +342,18 @@ export default function Chat() {
       }
     };
 
-    socket.on("new_message", handleNewMessage);
-    socket.on("user_typing", handleUserTyping);
-    socket.on("messages_read", handleMessagesRead);
-    socket.on("offer_acceptance_message", handleOfferAcceptanceMessage);
+    const cleanupNewMessage = onNewMessage(handleNewMessage);
+    const cleanupUserTyping = onUserTyping(handleUserTyping);
+    const cleanupMessagesRead = onMessagesRead(handleMessagesRead);
+    const cleanupOfferAcceptance = onOfferAcceptanceMessage(handleOfferAcceptanceMessage);
 
     return () => {
-      try {
-        socket.off("new_message", handleNewMessage);
-        socket.off("user_typing", handleUserTyping);
-        socket.off("messages_read", handleMessagesRead);
-        socket.off("offer_acceptance_message", handleOfferAcceptanceMessage);
-      } catch (error) {
-        console.warn("Error removing socket listeners:", error);
-      }
+      cleanupNewMessage();
+      cleanupUserTyping();
+      cleanupMessagesRead();
+      cleanupOfferAcceptance();
     };
-  }, [socket, selectedRoom, user, markMessagesAsRead]);
-
-  
-  useEffect(() => {
-    if (!isMountedRef.current) return;
-
-    const cleanup = onMessagesRead((data) => {
-      if (data.roomId === selectedRoom?.room_id) {
-        setMessages((prev) =>
-          prev.map((msg) =>
-            data.messageIds.includes(msg.id)
-              ? { ...msg, is_read: true, read_at: data.timestamp }
-              : msg
-          )
-        );
-      }
-    });
-
-    return cleanup;
-  }, [onMessagesRead, selectedRoom]);
+  }, [selectedRoom, user, markMessagesAsRead, onNewMessage, onUserTyping, onMessagesRead, onOfferAcceptanceMessage]);
 
   
   useEffect(() => {
@@ -852,7 +832,7 @@ export default function Chat() {
       
       const syntheticEvent = {
         target: { files: [file] }
-      } as React.ChangeEvent<HTMLInputElement>;
+      } as unknown as React.ChangeEvent<HTMLInputElement>;
       handleFileSelect(syntheticEvent);
     }
   };

@@ -198,7 +198,6 @@ export default function ChatPage({ setComponent, campaignId, creatorId }: ChatPa
 
   
   const {
-    socket,
     isConnected,
     connectionError,
     joinRoom,
@@ -216,6 +215,11 @@ export default function ChatPage({ setComponent, campaignId, creatorId }: ChatPa
     onContractActivated,
     sendOfferAcceptanceMessage,
     reconnect,
+    onNewMessage,
+    onUserTyping,
+    onMessagesRead,
+    onOfferAcceptanceMessage,
+    onContractTerminated,
   } = useSocket({ enableNotifications: false, enableChat: true });
 
   
@@ -348,7 +352,7 @@ export default function ChatPage({ setComponent, campaignId, creatorId }: ChatPa
 
   
   useEffect(() => {
-    if (!socket || !isMountedRef.current) return;
+    if (!isMountedRef.current) return;
 
     
     const handleNewMessage = (data: any) => {
@@ -472,24 +476,20 @@ export default function ChatPage({ setComponent, campaignId, creatorId }: ChatPa
       }
     };
 
-    socket.on("new_message", handleNewMessage);
-    socket.on("user_typing", handleUserTyping);
-    socket.on("messages_read", handleMessagesRead);
+    const cleanupNewMessage = onNewMessage(handleNewMessage);
+    const cleanupUserTyping = onUserTyping(handleUserTyping);
+    const cleanupMessagesRead = onMessagesRead(handleMessagesRead);
 
     return () => {
-      try {
-        socket.off("new_message", handleNewMessage);
-        socket.off("user_typing", handleUserTyping);
-        socket.off("messages_read", handleMessagesRead);
-      } catch (error) {
-        console.warn("Error removing socket listeners:", error);
-      }
+      cleanupNewMessage();
+      cleanupUserTyping();
+      cleanupMessagesRead();
     };
-  }, [socket, selectedRoom, user, markMessagesAsRead]);
+  }, [selectedRoom, user, markMessagesAsRead, onNewMessage, onUserTyping, onMessagesRead]);
 
   
   useEffect(() => {
-    if (!socket || !isMountedRef.current) return;
+    if (!isMountedRef.current) return;
 
     
     const handleOfferCreated = (data: any) => {
@@ -731,27 +731,26 @@ export default function ChatPage({ setComponent, campaignId, creatorId }: ChatPa
     };
 
     
-    socket.on('offer_created', handleOfferCreated);
-    socket.on('offer_accepted', handleOfferAccepted);
-    socket.on('offer_acceptance_message', handleOfferAcceptanceMessage);
-    socket.on('offer_rejected', handleOfferRejected);
-    socket.on('offer_cancelled', handleOfferCancelled);
-    socket.on('contract_completed', handleContractCompleted);
-    socket.on('contract_terminated', handleContractTerminated);
-    socket.on('contract_activated', handleContractActivated);
+    const cleanupOfferCreated = onOfferCreated(handleOfferCreated);
+    const cleanupOfferAccepted = onOfferAccepted(handleOfferAccepted);
+    const cleanupOfferAcceptanceMessage = onOfferAcceptanceMessage(handleOfferAcceptanceMessage);
+    const cleanupOfferRejected = onOfferRejected(handleOfferRejected);
+    const cleanupOfferCancelled = onOfferCancelled(handleOfferCancelled);
+    const cleanupContractCompleted = onContractCompleted(handleContractCompleted);
+    const cleanupContractTerminated = onContractTerminated(handleContractTerminated);
+    const cleanupContractActivated = onContractActivated(handleContractActivated);
 
     return () => {
-      
-      socket.off('offer_created', handleOfferCreated);
-      socket.off('offer_accepted', handleOfferAccepted);
-      socket.off('offer_acceptance_message', handleOfferAcceptanceMessage);
-      socket.off('offer_rejected', handleOfferRejected);
-      socket.off('offer_cancelled', handleOfferCancelled);
-      socket.off('contract_completed', handleContractCompleted);
-      socket.off('contract_terminated', handleContractTerminated);
-      socket.off('contract_activated', handleContractActivated);
+      cleanupOfferCreated();
+      cleanupOfferAccepted();
+      cleanupOfferAcceptanceMessage();
+      cleanupOfferRejected();
+      cleanupOfferCancelled();
+      cleanupContractCompleted();
+      cleanupContractTerminated();
+      cleanupContractActivated();
     };
-  }, [socket, selectedRoom, user, onOfferCreated, onOfferAccepted, onOfferRejected, onOfferCancelled, onContractCompleted, onContractActivated]);
+  }, [selectedRoom, user, onOfferCreated, onOfferAccepted, onOfferRejected, onOfferCancelled, onContractCompleted, onContractActivated, onOfferAcceptanceMessage, onContractTerminated]);
 
   
   useEffect(() => {

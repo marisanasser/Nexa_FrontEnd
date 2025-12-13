@@ -39,10 +39,12 @@
     "date-fns": "^3.6.0",
     "embla-carousel-react": "^8.6.0",
     "intl-tel-input": "^25.11.3",
+    "laravel-echo": "^2.2.6",
     "lovable-tagger": "^1.1.8",
     "lucide-react": "^0.294.0",
     "pagar": "^0.0.0",
     "phone": "^3.1.67",
+    "pusher-js": "^8.4.0",
     "react": "^18.2.0",
     "react-day-picker": "^8.10.1",
     "react-dom": "^18.2.0",
@@ -51,7 +53,6 @@
     "react-redux": "^9.0.4",
     "react-router-dom": "^6.20.1",
     "redux-persist": "^6.0.0",
-    "socket.io-client": "^4.7.4",
     "sonner": "^2.0.6",
     "tailwind-merge": "^2.2.0",
     "tailwindcss-animate": "^1.0.7",
@@ -71,7 +72,7 @@
     "postcss": "^8.4.32",
     "tailwindcss": "^3.3.6",
     "typescript": "^5.2.2",
-    "vite": "^5.0.8",
-    "vitest": "^1.0.4"
+    "vite": "^7.2.7",
+    "vitest": "^4.0.15"
   }
 }
