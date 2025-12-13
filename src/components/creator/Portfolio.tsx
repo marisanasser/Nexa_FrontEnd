@@ -464,7 +464,7 @@ export default function Portfolio() {
                                                         {linkData.title}
                                                     </div>
                                                     <div className="text-xs text-muted-foreground truncate">
-                                                        {linkData.url.replace(/^https?:\/\
+                                                        {linkData.url.replace(/^https?:\/\//, '').replace(/\/$/, '')}
                                                     </div>
                                                 </div>
                                                 <svg className="w-4 h-4 text-muted-foreground group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">

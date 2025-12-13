@@ -47,6 +47,12 @@ import {
   Briefcase,
   AlertCircle,
 } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "../../components/ui/dropdown-menu";
 import { useSocket } from "../../hooks/useSocket";
 import { chatService, ChatRoom, Message } from "../../services/chatService";
 import { useAppSelector } from "../../store/hooks";
@@ -64,6 +70,39 @@ interface ChatPageProps {
   campaignId?: number;
   creatorId?: string;
 }
+
+interface FileDropdownProps {
+  message: Message;
+  onDownload: (message: Message) => void;
+}
+
+const FileDropdown = ({ message, onDownload }: FileDropdownProps) => {
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-8 w-8 text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white opacity-0 group-hover:opacity-100 transition-opacity"
+        >
+          <MoreVertical className="h-4 w-4" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+        <DropdownMenuItem onClick={() => onDownload(message)}>
+          <Download className="mr-2 h-4 w-4" />
+          <span>Baixar</span>
+        </DropdownMenuItem>
+        {message.file_url && (
+          <DropdownMenuItem onClick={() => window.open(message.file_url, "_blank")}>
+            <ExternalLink className="mr-2 h-4 w-4" />
+            <span>Abrir no navegador</span>
+          </DropdownMenuItem>
+        )}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+};
 
 export default function ChatPage({ setComponent, campaignId, creatorId }: ChatPageProps) {
   const { user } = useAppSelector((state) => state.auth);
@@ -1949,56 +1988,47 @@ export default function ChatPage({ setComponent, campaignId, creatorId }: ChatPa
         mode: "cors",
         credentials: "include",
         headers: {
-          Accept: "*g, '');
-            return (
-              <div key={index} className="flex items-center gap-3 pt-2">
-                <div className="w-2 h-2 bg-gradient-to-r from-pink-500 to-purple-600 rounded-full flex-shrink-0"></div>
-                <h3 className="text-lg font-bold text-slate-800 dark:text-slate-200">
-                  {headerText}
-                </h3>
-              </div>
-            );
-          }
-          
-          
-          if (line.startsWith('•')) {
-            return (
-              <div key={index} className="flex items-start gap-3 pl-4">
-                <div className="w-1.5 h-1.5 bg-pink-500 rounded-full mt-2 flex-shrink-0"></div>
-                <p className="text-sm text-slate-900 dark:text-white leading-relaxed">
-                  {line.replace('• ', '')}
-                </p>
-              </div>
-            );
-          }
-          
-          
-          if (line.includes('**')) {
-            const parts = line.split('**');
-            return (
-              <p key={index} className="text-sm text-slate-900 dark:text-white leading-relaxed">
-                {parts.map((part, partIndex) => 
-                  partIndex % 2 === 1 ? (
-                    <strong key={partIndex} className="font-semibold text-slate-900 dark:text-slate-100">
-                      {part}
-                    </strong>
-                  ) : (
-                    part
-                  )
-                )}
-              </p>
-            );
-          }
-          
-          
-          return (
-            <p key={index} className="text-sm text-slate-900 dark:text-white leading-relaxed">
-              {line}
-            </p>
-          );
-        })}
-      </div>
-    );
+          Accept: "*/*",
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error("Download failed");
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (error) {
+      console.error("Download failed:", error);
+      toast({
+        title: "Erro",
+        description: "Erro ao baixar arquivo. Tente novamente.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const formatGuideMessage = (text: string) => {
+    return text.split('\n').map((line, index) => {
+      const parts = line.split(/(\*\*.*?\*\*)/g);
+      return (
+        <div key={index} className="min-h-[1.5em]">
+          {parts.map((part, i) => {
+            if (part.startsWith('**') && part.endsWith('**')) {
+              return <strong key={i} className="font-bold text-slate-900 dark:text-white">{part.slice(2, -2)}</strong>;
+            }
+            return <span key={i} className="text-slate-700 dark:text-slate-300">{part}</span>;
+          })}
+        </div>
+      );
+    });
   };
 
   const renderMessageContent = (message: Message) => {
@@ -2026,7 +2056,7 @@ export default function ChatPage({ setComponent, campaignId, creatorId }: ChatPa
                 </div>
               </div>
             </div>
-            <FileDropdown message={message} />
+            <FileDropdown message={message} onDownload={downloadFileToLocal} />
           </div>
           {message.message && message.message !== message.file_name && (
             <p className={message.is_sender ? "text-sm text-white" : "text-sm text-slate-900 dark:text-white"}>
