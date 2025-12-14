@@ -9,9 +9,8 @@ import {
     selectUnreadCount
 } from '../store/slices/notificationSlice';
 import { Button } from '../components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
+import { Card, CardContent } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
-import { Separator } from '../components/ui/separator';
 import { Check, Trash2, Bell, ArrowLeft } from 'lucide-react';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
@@ -116,6 +115,29 @@ const NotificationsPage = () => {
         }
     };
 
+    const handleNotificationClick = async (notification: any) => {
+        if (!token) return;
+
+        const isChatNotification =
+            notification.type === 'new_message' &&
+            notification.data &&
+            (notification.data.chat_type === 'campaign' || notification.data.chat_type === 'direct') &&
+            notification.data.chat_room_id;
+
+        if (isChatNotification) {
+            const roomId = notification.data.chat_room_id as string;
+            navigate(`/brand/chat?room=${roomId}`);
+        }
+
+        if (!notification.is_read) {
+            try {
+                await dispatch(markNotificationAsRead({ notificationId: notification.id, token })).unwrap();
+            } catch (error) {
+                toast.error('Erro ao marcar notificação como lida');
+            }
+        }
+    };
+
     return (
         <div className="min-h-screen bg-background">
             <div className="container mx-auto px-4 py-8 max-w-4xl">
@@ -188,7 +210,11 @@ const NotificationsPage = () => {
                         </Card>
                     ) : (
                         filteredNotifications.map((notification) => (
-                            <Card key={notification.id} className={`transition-all ${!notification.is_read ? 'border-primary/50 bg-primary/5' : ''}`}>
+                            <Card
+                                key={notification.id}
+                                className={`transition-all ${!notification.is_read ? 'border-primary/50 bg-primary/5' : ''} cursor-pointer`}
+                                onClick={() => handleNotificationClick(notification)}
+                            >
                                 <CardContent className="p-6">
                                     <div className="flex items-start gap-4">
                                         <div className="flex-shrink-0 mt-1 text-2xl">

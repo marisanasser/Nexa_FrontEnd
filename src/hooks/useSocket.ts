@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import { useAppSelector, useAppDispatch } from '../store/hooks';
 import { apiClient } from '../services/apiClient';
 import { Message } from '../services/chatService';
-import { addNotification, incrementUnreadCount } from '../store/slices/notificationSlice';
+import { addNotification } from '../store/slices/notificationSlice';
 import { getEcho } from '../lib/echo';
 
 interface UseSocketReturn {
@@ -46,6 +46,7 @@ export const useSocket = (options: UseSocketOptions = {}): UseSocketReturn => {
     const [connectionError, setConnectionError] = useState<string | null>(null);
     const isMountedRef = useRef(true);
     const activeChannelsRef = useRef<Set<string>>(new Set());
+    const seenNotificationIdsRef = useRef<Set<number | string>>(new Set());
     
     // Event handlers storage
     const eventHandlersRef = useRef<{ [key: string]: Set<Function> }>({
@@ -111,31 +112,31 @@ export const useSocket = (options: UseSocketOptions = {}): UseSocketReturn => {
                             data?.data &&
                             (data.data.chat_type === 'campaign' || data.data.chat_type === 'direct');
 
-                        let isOnChatPage = false;
+                        let isChatOpen = false;
                         if (typeof window !== 'undefined') {
-                            const { pathname, search } = window.location;
-                            const hasChatInPath = pathname.includes('/chat');
-                            let hasChatComponent = false;
-
-                            if (search) {
-                                const params = new URLSearchParams(search);
-                                const componentParam = params.get('component');
-                                if (componentParam === 'chat' || componentParam === 'Chat') {
-                                    hasChatComponent = true;
-                                }
-                            }
-
-                            isOnChatPage = hasChatInPath || hasChatComponent;
+                            const w = window as any;
+                            isChatOpen = Boolean(w.__NEXA_CHAT_OPEN);
                         }
 
-                        if (isChatNotification && isOnChatPage) {
+                        if (isChatNotification && isChatOpen) {
                             return;
                         }
 
-                        dispatch(addNotification(data));
-                        if (!data.is_read) {
-                            dispatch(incrementUnreadCount());
+                        const notificationId =
+                            (data && (data.id ?? data.notification_id)) as number | string | undefined;
+
+                        if (notificationId !== undefined && notificationId !== null) {
+                            if (seenNotificationIdsRef.current.has(notificationId)) {
+                                return;
+                            }
+                            seenNotificationIdsRef.current.add(notificationId);
+                            if (seenNotificationIdsRef.current.size > 500) {
+                                const first = seenNotificationIdsRef.current.values().next().value;
+                                seenNotificationIdsRef.current.delete(first);
+                            }
                         }
+
+                        dispatch(addNotification(data));
                     });
                 activeChannelsRef.current.add(channelName);
             }
@@ -150,15 +151,16 @@ export const useSocket = (options: UseSocketOptions = {}): UseSocketReturn => {
 
         return () => {
             isMountedRef.current = false;
-            // We don't necessarily want to disconnect Echo here if it's shared,
-            // but since we treat it as singleton in getEcho, we leave it be.
-            // However, we should unsubscribe from channels if we joined them?
-            // For now, let's leave channels active to avoid constant resubscribe on re-renders
-            // unless we strictly want to clean up.
-            
-            // Actually, if we use a singleton Echo, we should probably track channel subscriptions
-            // globally or risk memory leaks.
-            // For this implementation, we rely on Echo's internal management.
+            if (echoRef.current) {
+                activeChannelsRef.current.forEach((channelName) => {
+                    try {
+                        echoRef.current.leave(channelName);
+                    } catch (e) {
+                        console.error('Error leaving channel', channelName, e);
+                    }
+                });
+                activeChannelsRef.current.clear();
+            }
         };
     }, [initializeEcho]);
 

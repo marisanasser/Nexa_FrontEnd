@@ -132,8 +132,27 @@ export default function Chat() {
   
   useEffect(() => {
     isMountedRef.current = true;
+
+    if (typeof window !== "undefined") {
+      const w = window as any;
+      w.__NEXA_CHAT_OPEN = true;
+      if (selectedRoom?.room_id) {
+        w.__NEXA_ACTIVE_CHAT_ROOM_ID = selectedRoom.room_id;
+      }
+    }
+
     return () => {
       isMountedRef.current = false;
+
+      if (typeof window !== "undefined") {
+        const w = window as any;
+        if (w.__NEXA_CHAT_OPEN) {
+          w.__NEXA_CHAT_OPEN = false;
+        }
+        if (w.__NEXA_ACTIVE_CHAT_ROOM_ID === selectedRoom?.room_id) {
+          w.__NEXA_ACTIVE_CHAT_ROOM_ID = null;
+        }
+      }
       
       if (typingTimeoutRef.current) {
         clearTimeout(typingTimeoutRef.current);
@@ -371,6 +390,17 @@ export default function Chat() {
   
   useEffect(() => {
     setTypingUsers(new Set());
+  }, [selectedRoom?.room_id]);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const w = window as any;
+      if (selectedRoom?.room_id) {
+        w.__NEXA_ACTIVE_CHAT_ROOM_ID = selectedRoom.room_id;
+      } else if (w.__NEXA_ACTIVE_CHAT_ROOM_ID) {
+        w.__NEXA_ACTIVE_CHAT_ROOM_ID = null;
+      }
+    }
   }, [selectedRoom?.room_id]);
 
   

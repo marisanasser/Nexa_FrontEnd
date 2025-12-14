@@ -21,10 +21,12 @@ import {
 } from '../store/slices/notificationSlice';
 import { toast } from 'sonner';
 import { Separator } from './ui/separator';
+import { useNavigate } from 'react-router-dom';
 
 const NotificationBell = () => {
     const dispatch = useAppDispatch();
-    const { token } = useAppSelector((state) => state.auth);
+    const navigate = useNavigate();
+    const { token, user } = useAppSelector((state) => state.auth);
     const unreadCount = useAppSelector(selectUnreadCount);
     const notifications = useAppSelector(selectNotifications);
     const hasInitialData = useAppSelector(selectHasInitialData);
@@ -122,6 +124,37 @@ const NotificationBell = () => {
         return `${Math.floor(diffInMinutes / 1440)}d atrás`;
     };
 
+    const handleNotificationClick = async (notification: any) => {
+        if (!token) return;
+
+        const isChatNotification =
+            notification.type === 'new_message' &&
+            notification.data &&
+            (notification.data.chat_type === 'campaign' || notification.data.chat_type === 'direct') &&
+            notification.data.chat_room_id;
+
+        if (isChatNotification) {
+            const roomId = notification.data.chat_room_id as string;
+            localStorage.setItem("selectedChatRoom", roomId);
+
+            if (user?.role === "brand") {
+                navigate("/brand?component=chat");
+            } else if (user?.role === "creator" || user?.role === "student") {
+                navigate("/creator?component=chat");
+            }
+        }
+
+        if (!notification.is_read) {
+            try {
+                await dispatch(markNotificationAsRead({ notificationId: notification.id, token })).unwrap();
+            } catch (error) {
+                toast.error('Erro ao marcar notificação como lida');
+            }
+        }
+
+        setIsOpen(false);
+    };
+
     return (
         <Popover open={isOpen} onOpenChange={setIsOpen} data-notification-bell={componentId.current}>
             <PopoverTrigger asChild>
@@ -160,7 +193,10 @@ const NotificationBell = () => {
                         <div className="space-y-0">
                             {recentNotifications.map((notification, index) => (
                                 <div key={notification.id}>
-                                    <div  className="p-4 hover:bg-accent/50 transition-colors">
+                                    <div
+                                        className="p-4 hover:bg-accent/50 transition-colors cursor-pointer"
+                                        onClick={() => handleNotificationClick(notification)}
+                                    >
                                         <div className="flex items-start justify-between gap-3">
                                             <div className="flex-1 min-w-0">
                                                 <div className="flex items-start justify-between gap-2">
