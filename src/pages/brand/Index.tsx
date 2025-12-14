@@ -96,6 +96,6 @@ function Index() {
             </div>
         </ThemeProvider>
     );
-};
+}
 
 export default Index;

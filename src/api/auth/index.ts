@@ -133,90 +133,68 @@ export const signup = async (data: any) => {
 
 
 export const healthCheck = async () => {
-    try {
-        const response = await AuthAPI.get("/api/health");
-        return response.data;
-    } catch (error: any) {
-        throw error;
-    }
+    const response = await AuthAPI.get("/api/health");
+    return response.data;
 };
 
 
 
 
 export const signin = async (data: any) => {
-    try {
-        const response = await retryRequest(() => AuthAPI.post("/api/login", data, {
-            headers: {
-                'Content-Type': 'application/json',
-            }
-        }));
-        return response.data;
-    } catch (error: any) {
-        throw error;
-    }
+    const response = await retryRequest(() => AuthAPI.post("/api/login", data, {
+        headers: {
+            'Content-Type': 'application/json',
+        }
+    }));
+    return response.data;
 };
 
 
 export const profileUpdate = async (data: any) => {
-    try {
-        const isFormData = data instanceof FormData;
+    const isFormData = data instanceof FormData;
 
-        const config = {
-            headers: {
-                "Content-Type": isFormData ? "multipart/form-data" : "application/json",
-            },
-        };
+    const config = {
+        headers: {
+            "Content-Type": isFormData ? "multipart/form-data" : "application/json",
+        },
+    };
 
-        
-        if (isFormData) {
-            delete config.headers["Content-Type"];
-        }
-
-        const response = await AuthAPI.put("/api/profile", data, config);
-
-        if (!response.data.success) {
-            throw new Error(response.data.message || 'Falha ao atualizar perfil');
-        }
-        return response.data;
-    } catch (error: any) {
-        throw error;
+    if (isFormData) {
+        delete config.headers["Content-Type"];
     }
+
+    const response = await AuthAPI.put("/api/profile", data, config);
+
+    if (!response.data.success) {
+        throw new Error(response.data.message || 'Falha ao atualizar perfil');
+    }
+    return response.data;
 };
 
 
 export const getProfile = async () => {
-    try {
-        
-        const timestamp = Date.now();
-        const response = await AuthAPI.get(`/api/profile?t=${timestamp}`);
-        if (!response.data.success) {
-            throw new Error(response.data.message || 'Falha ao buscar perfil');
-        }
-        return response.data;
-    } catch (error: any) {
-        throw error;
+    const timestamp = Date.now();
+    const response = await AuthAPI.get(`/api/profile?t=${timestamp}`);
+    if (!response.data.success) {
+        throw new Error(response.data.message || 'Falha ao buscar perfil');
     }
+    return response.data;
 };
 
 
 export const getUser = async (userId?: string) => {
-    try {
-        const endpoint = userId ? `/api/users/${userId}` : "/api/user";
-        const response = await AuthAPI.get(endpoint);
-        
-        if (response.data.success === false) {
-            throw new Error(response.data.message || 'Falha ao buscar dados do usuário');
-        }
+    const endpoint = userId ? `/api/users/${userId}` : "/api/user";
+    const response = await AuthAPI.get(endpoint);
 
-        return {
-            success: true,
-            user: response.data.user || response.data,
-            message: response.data.message || 'User data retrieved successfully'
-        };
-    } catch (error: any) {
-        throw error;
+    if (response.data.success === false) {
+        throw new Error(response.data.message || 'Falha ao buscar dados do usuário');
     }
+
+    return {
+        success: true,
+        user: response.data.user || response.data,
+        message: response.data.message || 'User data retrieved successfully'
+    };
 };
 
 
@@ -227,12 +205,8 @@ export const forgotPassword = async (data: any) => {
 
 
 export const resetPassword = async (data: { token: string; email: string; password: string; password_confirmation: string }) => {
-    try {
-        const response = await AuthAPI.post("/api/reset-password", data);
-        return response.data;
-    } catch (error: any) {
-        throw error;
-    }
+    const response = await AuthAPI.post("/api/reset-password", data);
+    return response.data;
 };
 
 

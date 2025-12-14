@@ -39,21 +39,15 @@ const setAuthToken = (token: string) => {
 export const CreateNewCampaign = async (data: FormData, token: string) => {
     setAuthToken(token);
 
-    
     const FormDataAPI = axios.create({
         baseURL: `${BackendURL}`,
         headers: {
-            
             "Authorization": `Bearer ${token}`
         },
     });
 
-    try {
-        const response = await FormDataAPI.post("/api/campaigns", data);
-        return response.data;
-    } catch (error: any) {
-        throw error;
-    }
+    const response = await FormDataAPI.post("/api/campaigns", data);
+    return response.data;
 };
 
 
@@ -70,12 +64,8 @@ export const GetAllCampaigns = async (token: string) => {
 
 export const GetPendingCampaigns = async (token: string) => {
     setAuthToken(token);
-    try {
-        const response = await CampaignAPI.get("/api/campaigns/pending");
-        return response.data;
-    } catch (error: any) {
-        throw error;
-    }
+    const response = await CampaignAPI.get("/api/campaigns/pending");
+    return response.data;
 };
 
 
@@ -129,25 +119,16 @@ export const GetCampaignStats = async (token: string) => {
 
 export const ApproveCampaign = async (campaignId: number, token: string) => {
     setAuthToken(token);
-    try {
-        
-        const response = await CampaignAPI.patch(`/api/campaigns/${campaignId}/approve`, {});
-        return response.data;
-    } catch (error: any) {
-        throw error;
-    }
+    const response = await CampaignAPI.patch(`/api/campaigns/${campaignId}/approve`, {});
+    return response.data;
 };
 
 
 export const RejectCampaign = async (campaignId: number, token: string, reason?: string) => {
     setAuthToken(token);
-    try {
-        const data = reason ? { reason } : {};
-        const response = await CampaignAPI.patch(`/api/campaigns/${campaignId}/reject`, data);
-        return response.data;
-    } catch (error: any) {
-        throw error;
-    }
+    const data = reason ? { reason } : {};
+    const response = await CampaignAPI.patch(`/api/campaigns/${campaignId}/reject`, data);
+    return response.data;
 };
 
 
@@ -160,34 +141,22 @@ export const ArchiveCampaign = async (campaignId: number, token: string) => {
 
 export const ToggleFeaturedCampaign = async (campaignId: number, token: string) => {
     setAuthToken(token);
-    try {
-        const response = await CampaignAPI.patch(`/api/campaigns/${campaignId}/toggle-featured`);
-        return response.data;
-    } catch (error: any) {
-        throw error;
-    }
+    const response = await CampaignAPI.patch(`/api/campaigns/${campaignId}/toggle-featured`);
+    return response.data;
 };
 
 
 export const ToggleFavoriteCampaign = async (campaignId: number, token: string) => {
     setAuthToken(token);
-    try {
-        const response = await CampaignAPI.post(`/api/campaigns/${campaignId}/toggle-favorite`);
-        return response.data;
-    } catch (error: any) {
-        throw error;
-    }
+    const response = await CampaignAPI.post(`/api/campaigns/${campaignId}/toggle-favorite`);
+    return response.data;
 };
 
 
 export const GetFavoriteCampaigns = async (token: string) => {
     setAuthToken(token);
-    try {
-        const response = await CampaignAPI.get("/api/campaigns/favorites");
-        return response.data;
-    } catch (error: any) {
-        throw error;
-    }
+    const response = await CampaignAPI.get("/api/campaigns/favorites");
+    return response.data;
 };
 
 

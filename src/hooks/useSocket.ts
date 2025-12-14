@@ -47,8 +47,7 @@ export const useSocket = (options: UseSocketOptions = {}): UseSocketReturn => {
     const isMountedRef = useRef(true);
     const activeChannelsRef = useRef<Set<string>>(new Set());
     
-    // Event handlers storage
-    const eventHandlersRef = useRef<{ [key: string]: Set<Function> }>({
+    const eventHandlersRef = useRef<{ [key: string]: Set<(data: any) => void> }>({
         new_message: new Set(),
         user_typing: new Set(),
         messages_read: new Set(),
@@ -288,8 +287,7 @@ export const useSocket = (options: UseSocketOptions = {}): UseSocketReturn => {
          });
     }, [dispatchEvent]);
 
-    // Register event listener helper
-    const registerListener = (eventName: string, callback: Function) => {
+    const registerListener = (eventName: string, callback: (data: any) => void) => {
         if (!eventHandlersRef.current[eventName]) {
             eventHandlersRef.current[eventName] = new Set();
         }

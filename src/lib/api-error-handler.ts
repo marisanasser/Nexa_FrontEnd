@@ -60,12 +60,10 @@ export const handleApiError = (error: any): ApiError => {
           code: 'VALIDATION_ERROR'
         };
       
-      case 429:
-        
+      case 429: {
         const retryAfter = data?.retry_after || 60;
         let message = 'Muitas requisições. Tente novamente em alguns instantes.';
-        
-        
+
         if (error.config?.url?.includes('/login') || error.config?.url?.includes('/register')) {
           if (error.config?.url?.includes('/register')) {
             message = `Muitas tentativas de registro. Tente novamente em ${Math.ceil(retryAfter / 60)} minuto(s).`;
@@ -73,23 +71,22 @@ export const handleApiError = (error: any): ApiError => {
             message = `Muitas tentativas de login. Tente novamente em ${Math.ceil(retryAfter / 60)} minuto(s).`;
           }
         }
-        
-        
+
         if (error.config?.url?.includes('/notifications')) {
           message = `Muitas requisições de notificações. Tente novamente em ${Math.ceil(retryAfter / 60)} minuto(s).`;
         }
-        
-        
+
         if (data?.error_type === 'new_user_flow_rate_limited') {
           message = `Muitas tentativas de criação de conta. Tente novamente em ${Math.ceil(retryAfter / 60)} minuto(s).`;
         }
-        
+
         return {
           message,
           status,
           code: 'RATE_LIMITED',
           retry_after: retryAfter
         };
+      }
       
       case 500:
         return {

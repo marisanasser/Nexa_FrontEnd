@@ -50,62 +50,48 @@ export const handleGoogleAuthWithRole = async (role: 'creator' | 'brand') => {
 
 
 export const initiateGoogleOAuth = async (role?: 'creator' | 'brand', isStudent?: boolean) => {
-    try {
-        
-        const { redirect_url } = await getGoogleOAuthURL();
+    const { redirect_url } = await getGoogleOAuthURL();
 
-        
-        if (role) {
-            sessionStorage.setItem('google_oauth_role', role);
-        }
-        
-        if (isStudent) {
-            sessionStorage.setItem('google_oauth_is_student', 'true');
-        } else {
-            sessionStorage.removeItem('google_oauth_is_student');
-        }
-
-        
-        window.location.href = redirect_url;
-    } catch (error) {
-        throw error;
+    if (role) {
+        sessionStorage.setItem('google_oauth_role', role);
     }
+
+    if (isStudent) {
+        sessionStorage.setItem('google_oauth_is_student', 'true');
+    } else {
+        sessionStorage.removeItem('google_oauth_is_student');
+    }
+
+    window.location.href = redirect_url;
 };
 
 
 export const handleOAuthCallback = async () => {
-    try {
-        const urlParams = new URLSearchParams(window.location.search);
-        const code = urlParams.get('code');
-        const error = urlParams.get('error');
+    const urlParams = new URLSearchParams(window.location.search);
+    const code = urlParams.get('code');
+    const error = urlParams.get('error');
 
-        if (error) {
-            throw new Error(`OAuth error: ${error}`);
-        }
-
-        if (!code) {
-            throw new Error('Nenhum código de autorização recebido');
-        }
-
-        
-        const role = sessionStorage.getItem('google_oauth_role') as 'creator' | 'brand' | null;
-        const isStudent = sessionStorage.getItem('google_oauth_is_student') === 'true';
-
-        let authData;
-        if (role) {
-            
-            authData = await handleGoogleCallback(code, role, isStudent);
-            sessionStorage.removeItem('google_oauth_role');
-            sessionStorage.removeItem('google_oauth_is_student');
-        } else {
-            
-            authData = await handleGoogleCallback(code, undefined, isStudent);
-            sessionStorage.removeItem('google_oauth_is_student');
-        }
-
-        return authData;
-    } catch (error) {
-        throw error;
+    if (error) {
+        throw new Error(`OAuth error: ${error}`);
     }
+
+    if (!code) {
+        throw new Error('Nenhum código de autorização recebido');
+    }
+
+    const role = sessionStorage.getItem('google_oauth_role') as 'creator' | 'brand' | null;
+    const isStudent = sessionStorage.getItem('google_oauth_is_student') === 'true';
+
+    let authData;
+    if (role) {
+        authData = await handleGoogleCallback(code, role, isStudent);
+        sessionStorage.removeItem('google_oauth_role');
+        sessionStorage.removeItem('google_oauth_is_student');
+    } else {
+        authData = await handleGoogleCallback(code, undefined, isStudent);
+        sessionStorage.removeItem('google_oauth_is_student');
+    }
+
+    return authData;
 };
 

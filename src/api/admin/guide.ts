@@ -13,20 +13,16 @@ const BackendAPI = axios.create({
 
 
 export const GuideCreate = async (formData: FormData) => {
-    try {
-        const token = localStorage.getItem('token');
-        
-        const res = await BackendAPI.post("/api/admin/guides", formData, {
-            headers: {
-                "Content-Type": "multipart/form-data",
-                "Authorization": `Bearer ${token}`, 
-            },
-        });
-        
-        return res.data;
-    } catch (error: any) {
-        throw error;
-    }
+    const token = localStorage.getItem('token');
+
+    const res = await BackendAPI.post("/api/admin/guides", formData, {
+        headers: {
+            "Content-Type": "multipart/form-data",
+            "Authorization": `Bearer ${token}`,
+        },
+    });
+
+    return res.data;
 };
 
 

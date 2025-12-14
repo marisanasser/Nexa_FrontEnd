@@ -20,7 +20,7 @@ import { cn } from '@/lib/utils';
 import { Helmet } from 'react-helmet-async';
 import { translateWithdrawalStatus } from '@/utils/translationUtils';
 
-interface WithdrawalVerification {
+interface WithdrawalVerificationItem {
   id: number;
   amount: string;
   withdrawal_method: string;
@@ -45,7 +45,7 @@ interface VerificationReport {
     verification_failed: number;
     pending_verification: number;
   };
-  withdrawals: WithdrawalVerification[];
+  withdrawals: WithdrawalVerificationItem[];
   pagination: {
     current_page: number;
     last_page: number;

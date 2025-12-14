@@ -2,6 +2,7 @@ import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import StripeConnectOnboarding from '../StripeConnectOnboarding';
+import { stripeApi } from '../../../api/stripe';
 
 
 jest.mock('../../../api/stripe', () => ({
@@ -41,8 +42,7 @@ describe('StripeConnectOnboarding', () => {
   });
 
   it('renders loading state initially', () => {
-    const { stripeApi } = require('../../../api/stripe');
-    stripeApi.getAccountStatus.mockImplementation(() => new Promise(() => {})); 
+    stripeApi.getAccountStatus.mockImplementation(() => new Promise(() => {}));
 
     render(
       <TestWrapper>
@@ -54,7 +54,6 @@ describe('StripeConnectOnboarding', () => {
   });
 
   it('renders account setup when no account exists', async () => {
-    const { stripeApi } = require('../../../api/stripe');
     stripeApi.getAccountStatus.mockResolvedValue({
       has_account: false,
     });
@@ -72,7 +71,6 @@ describe('StripeConnectOnboarding', () => {
   });
 
   it('renders account status when account exists', async () => {
-    const { stripeApi } = require('../../../api/stripe');
     stripeApi.getAccountStatus.mockResolvedValue({
       has_account: true,
       verification_status: 'enabled',
@@ -93,7 +91,6 @@ describe('StripeConnectOnboarding', () => {
   });
 
   it('handles account link creation', async () => {
-    const { stripeApi } = require('../../../api/stripe');
     stripeApi.getAccountStatus.mockResolvedValue({
       has_account: false,
     });
@@ -132,7 +129,6 @@ describe('StripeConnectOnboarding', () => {
   });
 
   it('handles errors gracefully', async () => {
-    const { stripeApi } = require('../../../api/stripe');
     stripeApi.getAccountStatus.mockRejectedValue(new Error('API Error'));
 
     const onError = jest.fn();

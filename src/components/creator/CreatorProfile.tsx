@@ -264,7 +264,6 @@ export const CreatorProfile = () => {
           try {
             await deleteAvatar();
           } catch (e) {
-            
           }
           profileData.avatar = updatedProfile.image;
         }
@@ -281,25 +280,19 @@ export const CreatorProfile = () => {
             const newAvatar = uploadRes?.profile?.avatar || uploadRes?.profile?.avatar_url;
             if (newAvatar) {
               try {
-                
                 const bust = `${newAvatar}${newAvatar.includes('?') ? '&' : '?'}t=${Date.now()}`;
                 dispatch(updateAuthUser({ avatar: bust, avatar_url: bust }));
               } catch {}
             }
           } catch (err) {
-            
-            try {
-              const base64 = await fileToBase64(avatar);
-              const res2 = await uploadAvatarBase64(base64);
-              const newAvatar2 = res2?.profile?.avatar || res2?.profile?.avatar_url;
-              if (newAvatar2) {
-                try {
-                  const bust2 = `${newAvatar2}${newAvatar2.includes('?') ? '&' : '?'}t=${Date.now()}`;
-                  dispatch(updateAuthUser({ avatar: bust2, avatar_url: bust2 }));
-                } catch {}
-              }
-            } catch (e2) {
-              throw e2;
+            const base64 = await fileToBase64(avatar);
+            const res2 = await uploadAvatarBase64(base64);
+            const newAvatar2 = res2?.profile?.avatar || res2?.profile?.avatar_url;
+            if (newAvatar2) {
+              try {
+                const bust2 = `${newAvatar2}${newAvatar2.includes('?') ? '&' : '?'}t=${Date.now()}`;
+                dispatch(updateAuthUser({ avatar: bust2, avatar_url: bust2 }));
+              } catch {}
             }
           }
         }

@@ -1865,65 +1865,83 @@ export default function ChatPage({ setComponent, campaignId, creatorId }: ChatPa
     imageUrl: string,
     fileName: string
   ): Promise<void> => {
-    return new Promise(async (resolve, reject) => {
-      try {
-        
-        const downloadUrl = imageUrl.replace("/storage/", "/api/download/");
+    const downloadUrl = imageUrl.replace("/storage/", "/api/download/");
 
-        
-        try {
-          
-          const link = document.createElement("a");
-          link.href = downloadUrl;
-          link.download = fileName;
-          link.style.display = "none";
-          link.setAttribute("download", fileName);
-          link.setAttribute("type", getMimeType(fileName));
-          link.setAttribute("target", "_blank");
-          link.setAttribute("rel", "noopener noreferrer");
+    try {
+      const link = document.createElement("a");
+      link.href = downloadUrl;
+      link.download = fileName;
+      link.style.display = "none";
+      link.setAttribute("download", fileName);
+      link.setAttribute("type", getMimeType(fileName));
+      link.setAttribute("target", "_blank");
+      link.setAttribute("rel", "noopener noreferrer");
 
-          
-          const url = new URL(downloadUrl);
-          url.searchParams.set("download", Date.now().toString());
-          url.searchParams.set("filename", fileName);
-          url.searchParams.set("disposition", "attachment");
-          link.href = url.toString();
+      const url = new URL(downloadUrl);
+      url.searchParams.set("download", Date.now().toString());
+      url.searchParams.set("filename", fileName);
+      url.searchParams.set("disposition", "attachment");
+      link.href = url.toString();
 
-          
-          document.body.appendChild(link);
-          link.click();
-          document.body.removeChild(link);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
 
-          resolve();
-          return;
-        } catch (directError) {
-          console.warn(
-            "Direct link failed, trying fetch with proxy:",
-            directError
-          );
-        }
+      return;
+    } catch (directError) {
+      console.warn("Direct link failed, trying fetch with proxy:", directError);
+    }
 
-        
-        try {
-          const response = await fetch(downloadUrl, {
-            method: "GET",
-            mode: "cors",
-            credentials: "include",
-            headers: {
-              Accept: "image*;q=0.8",
-              "Cache-Control": "no-cache",
-              Pragma: "no-cache",
-            },
-          });
+    try {
+      const response = await fetch(downloadUrl, {
+        method: "GET",
+        mode: "cors",
+        credentials: "include",
+        headers: {
+          Accept: "image*;q=0.8",
+          "Cache-Control": "no-cache",
+          Pragma: "no-cache",
+        },
+      });
 
-          if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-          }
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
 
-          const blob = await response.blob();
+      const blob = await response.blob();
+      const blobUrl = window.URL.createObjectURL(blob);
+
+      const link = document.createElement("a");
+      link.href = blobUrl;
+      link.download = fileName;
+      link.style.display = "none";
+      link.setAttribute("download", fileName);
+      link.setAttribute("type", getMimeType(fileName));
+
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      setTimeout(() => {
+        window.URL.revokeObjectURL(blobUrl);
+      }, 1000);
+
+      return;
+    } catch (fetchError) {
+      console.warn("Proxy fetch failed, trying XMLHttpRequest:", fetchError);
+    }
+
+    try {
+      const xhr = new XMLHttpRequest();
+      xhr.open("GET", downloadUrl, true);
+      xhr.responseType = "blob";
+      xhr.withCredentials = true;
+
+      xhr.onload = function () {
+        if (xhr.status === 200) {
+          const blob = xhr.response;
           const blobUrl = window.URL.createObjectURL(blob);
 
-          
           const link = document.createElement("a");
           link.href = blobUrl;
           link.download = fileName;
@@ -1931,98 +1949,48 @@ export default function ChatPage({ setComponent, campaignId, creatorId }: ChatPa
           link.setAttribute("download", fileName);
           link.setAttribute("type", getMimeType(fileName));
 
-          
           document.body.appendChild(link);
           link.click();
           document.body.removeChild(link);
 
-          
           setTimeout(() => {
             window.URL.revokeObjectURL(blobUrl);
           }, 1000);
 
-          resolve();
           return;
-        } catch (fetchError) {
-          console.warn(
-            "Proxy fetch failed, trying XMLHttpRequest:",
-            fetchError
-          );
         }
 
-        
-        try {
-          const xhr = new XMLHttpRequest();
-          xhr.open("GET", downloadUrl, true);
-          xhr.responseType = "blob";
-          xhr.withCredentials = true;
+        throw new Error(`XHR failed with status: ${xhr.status}`);
+      };
 
-          xhr.onload = function () {
-            if (xhr.status === 200) {
-              const blob = xhr.response;
-              const blobUrl = window.URL.createObjectURL(blob);
+      xhr.onerror = function () {
+        throw new Error("XHR request failed");
+      };
 
-              
-              const link = document.createElement("a");
-              link.href = blobUrl;
-              link.download = fileName;
-              link.style.display = "none";
-              link.setAttribute("download", fileName);
-              link.setAttribute("type", getMimeType(fileName));
+      xhr.send();
+      return;
+    } catch (xhrError) {
+      console.warn("Proxy XHR failed, using manual download:", xhrError);
+    }
 
-              
-              document.body.appendChild(link);
-              link.click();
-              document.body.removeChild(link);
-
-              
-              setTimeout(() => {
-                window.URL.revokeObjectURL(blobUrl);
-              }, 1000);
-
-              resolve();
-            } else {
-              throw new Error(`XHR failed with status: ${xhr.status}`);
-            }
-          };
-
-          xhr.onerror = function () {
-            throw new Error("XHR request failed");
-          };
-
-          xhr.send();
-          return;
-        } catch (xhrError) {
-          console.warn("Proxy XHR failed, using manual download:", xhrError);
-        }
-
-        
-        console.warn(
-          "All proxy methods failed, opening in new tab for manual download"
+    console.warn(
+      "All proxy methods failed, opening in new tab for manual download"
+    );
+    const newWindow = window.open(
+      downloadUrl,
+      "_blank",
+      "noopener,noreferrer"
+    );
+    if (newWindow) {
+      setTimeout(() => {
+        alert(
+          `Image "${fileName}" opened in new tab. Please right-click and select "Save image as..." to download it.`
         );
-        try {
-          const newWindow = window.open(
-            downloadUrl,
-            "_blank",
-            "noopener,noreferrer"
-          );
-          if (newWindow) {
-            setTimeout(() => {
-              alert(
-                `Image "${fileName}" opened in new tab. Please right-click and select "Save image as..." to download it.`
-              );
-            }, 100);
-            resolve();
-          } else {
-            reject(new Error("Popup blocked by browser"));
-          }
-        } catch (openError) {
-          reject(openError);
-        }
-      } catch (error) {
-        reject(error);
-      }
-    });
+      }, 100);
+      return;
+    }
+
+    throw new Error("Popup blocked by browser");
   };
 
   

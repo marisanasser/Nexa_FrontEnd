@@ -26,65 +26,41 @@ export const getNotifications = async (token: string, params?: {
     is_read?: boolean;
 }) => {
     setAuthToken(token);
-    try {
-        const response = await NotificationAPI.get('/api/notifications', { params });
-        return response.data;
-    } catch (error: any) {
-        throw error;
-    }
+    const response = await NotificationAPI.get('/api/notifications', { params });
+    return response.data;
 };
 
 
 export const getUnreadCount = async (token: string) => {
     setAuthToken(token);
-    try {
-        const response = await NotificationAPI.get('/api/notifications/unread-count');
-        return response.data;
-    } catch (error: any) {
-        throw error;
-    }
+    const response = await NotificationAPI.get('/api/notifications/unread-count');
+    return response.data;
 };
 
 
 export const markAsRead = async (notificationId: number, token: string) => {
     setAuthToken(token);
-    try {
-        const response = await NotificationAPI.post(`/api/notifications/${notificationId}/mark-read`);
-        return response.data;
-    } catch (error: any) {
-        throw error;
-    }
+    const response = await NotificationAPI.post(`/api/notifications/${notificationId}/mark-read`);
+    return response.data;
 };
 
 
 export const markAllAsRead = async (token: string) => {
     setAuthToken(token);
-    try {
-        const response = await NotificationAPI.post('/api/notifications/mark-all-read');
-        return response.data;
-    } catch (error: any) {
-        throw error;
-    }
+    const response = await NotificationAPI.post('/api/notifications/mark-all-read');
+    return response.data;
 };
 
 
 export const deleteNotification = async (notificationId: number, token: string) => {
     setAuthToken(token);
-    try {
-        const response = await NotificationAPI.delete(`/api/notifications/${notificationId}`);
-        return response.data;
-    } catch (error: any) {
-        throw error;
-    }
+    const response = await NotificationAPI.delete(`/api/notifications/${notificationId}`);
+    return response.data;
 };
 
 
 export const getNotificationStatistics = async (token: string) => {
     setAuthToken(token);
-    try {
-        const response = await NotificationAPI.get('/api/notifications/statistics');
-        return response.data;
-    } catch (error: any) {
-        throw error;
-    }
+    const response = await NotificationAPI.get('/api/notifications/statistics');
+    return response.data;
 }; 

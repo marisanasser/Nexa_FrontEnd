@@ -1688,10 +1688,11 @@ export default function Chat() {
             
             
             if (line.includes('✅') || line.includes('❌') || line.includes('⚠️') || line.includes('🚫')) {
+              const statusMatch = line.match(/(✅|❌|⚠️|🚫)/);
               return (
                 <div key={index} className="flex items-start gap-3 mb-3 p-2 bg-white/50 dark:bg-slate-800/30 rounded-lg">
-                  <span className="text-xl flex-shrink-0">{line.match(/[✅❌⚠️🚫]/)?.[0]}</span>
-                  <span className="flex-1">{line.replace(/[✅❌⚠️🚫]/, '').trim()}</span>
+                  <span className="text-xl flex-shrink-0">{statusMatch?.[0]}</span>
+                  <span className="flex-1">{line.replace(/(✅|❌|⚠️|🚫)/, '').trim()}</span>
                 </div>
               );
             }

@@ -15,11 +15,7 @@ const setAuthToken = (token: string) => {
 
 
 export const getCreatorProfile = async (creatorId: string, token: string) => {
-    try {
-        setAuthToken(token);
-        const response = await UserAPI.get(`/api/creators/${creatorId}/profile`);
-        return response.data;
-    } catch (error) {
-        throw error;
-    }
+    setAuthToken(token);
+    const response = await UserAPI.get(`/api/creators/${creatorId}/profile`);
+    return response.data;
 }; 

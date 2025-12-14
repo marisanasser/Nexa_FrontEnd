@@ -92,12 +92,8 @@ export interface ChatRoomResponse {
 class ChatService {
     
     async getChatRooms(): Promise<ChatRoom[]> {
-        try {
-            const response = await apiClient.get('/chat/rooms');
-            return response.data.data;
-        } catch (error) {
-            throw error;
-        }
+        const response = await apiClient.get('/chat/rooms');
+        return response.data.data;
     }
 
     
