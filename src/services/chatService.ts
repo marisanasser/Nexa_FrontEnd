@@ -10,6 +10,7 @@ export interface ChatRoom {
         id: number;
         name: string;
         avatar?: string;
+        online?: boolean;
     };
     last_message?: {
         id: number;

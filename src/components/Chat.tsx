@@ -120,6 +120,7 @@ export default function Chat() {
     onUserTyping,
     onOfferAcceptanceMessage,
   } = useSocket({ enableNotifications: false, enableChat: true });
+  const isOtherUserOnline = selectedRoom?.other_user?.online === true;
   
   useEffect(() => {
   
@@ -2324,7 +2325,7 @@ export default function Chat() {
                     </Button>
                   )}
 
-                {isConnected ? (
+                {isOtherUserOnline ? (
                   <div className="flex items-center gap-1 text-green-500">
                     <Wifi className="w-4 h-4" />
                     <span className="text-xs">Online</span>

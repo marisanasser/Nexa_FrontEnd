@@ -165,6 +165,7 @@ export default function ChatPage({ setComponent, campaignId, creatorId }: ChatPa
 
   
   const [showTimelineSidebar, setShowTimelineSidebar] = useState(false);
+  const isOtherUserOnline = selectedRoom?.other_user?.online === true;
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -2869,7 +2870,7 @@ export default function ChatPage({ setComponent, campaignId, creatorId }: ChatPa
                   {selectedRoom.other_user.name}
                 </h2>
                 <div className="flex items-center gap-2">
-                  {isConnected ? (
+                  {isOtherUserOnline ? (
                     <div className="flex items-center gap-1 text-green-500">
                       <Wifi className="w-4 h-4" />
                       <span className="text-xs">Online</span>
