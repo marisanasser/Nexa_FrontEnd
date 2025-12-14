@@ -39,6 +39,7 @@
     "date-fns": "^3.6.0",
     "embla-carousel-react": "^8.6.0",
     "intl-tel-input": "^25.11.3",
+    "jsdom": "^27.3.0",
     "laravel-echo": "^2.2.6",
     "lovable-tagger": "^1.1.8",
     "lucide-react": "^0.294.0",
