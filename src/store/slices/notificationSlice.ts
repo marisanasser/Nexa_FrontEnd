@@ -163,6 +163,17 @@ const notificationSlice = createSlice({
             }
             state.notifications = state.notifications.filter(n => n.id !== action.payload);
         },
+        removeMultipleNotifications: (state, action: PayloadAction<number[]>) => {
+            const idsToRemove = new Set(action.payload);
+            const removedUnreadCount = state.notifications.filter(
+                n => idsToRemove.has(n.id) && !n.is_read
+            ).length;
+            
+            state.notifications = state.notifications.filter(n => !idsToRemove.has(n.id));
+            if (removedUnreadCount > 0) {
+                state.unreadCount = Math.max(0, state.unreadCount - removedUnreadCount);
+            }
+        },
         incrementUnreadCount: (state) => {
             state.unreadCount += 1;
         },
@@ -264,6 +275,7 @@ export const {
     addNotification,
     updateNotification,
     removeNotification,
+    removeMultipleNotifications,
     incrementUnreadCount,
     decrementUnreadCount,
     resetUnreadCount,

@@ -5,7 +5,10 @@ import {
     selectNotifications,
     markNotificationAsRead,
     deleteNotification,
-    markAllNotificationsAsRead
+    markAllNotificationsAsRead,
+    removeNotification,
+    removeMultipleNotifications,
+    addNotification
 } from '../store/slices/notificationSlice';
 import { Button } from '../components/ui/button';
 import { Card, CardContent } from '../components/ui/card';
@@ -45,11 +48,19 @@ const NotificationsPage = () => {
 
     const handleDeleteNotification = async (notificationId: number) => {
         if (!token) return;
+
+        const notification = notifications.find((n) => n.id === notificationId);
+        dispatch(removeNotification(notificationId));
         
         try {
             await dispatch(deleteNotification({ notificationId, token })).unwrap();
             toast.success('Notificação excluída');
         } catch (error) {
+            if (notification) {
+                dispatch(addNotification(notification));
+            } else {
+                dispatch(fetchNotifications(token));
+            }
             toast.error('Erro ao excluir notificação');
         }
     };
@@ -68,16 +79,20 @@ const NotificationsPage = () => {
     const handleDeleteAllNotifications = async () => {
         if (!token) return;
         if (notifications.length === 0) return;
+
+        const ids = notifications.map((n) => n.id);
+        dispatch(removeMultipleNotifications(ids));
         
         try {
             await Promise.all(
-                notifications.map((notification) =>
-                    dispatch(deleteNotification({ notificationId: notification.id, token })).unwrap()
+                ids.map((id) =>
+                    dispatch(deleteNotification({ notificationId: id, token })).unwrap()
                         .catch(() => null)
                 )
             );
             toast.success('Todas as notificações foram excluídas');
         } catch (error) {
+            dispatch(fetchNotifications(token));
             toast.error('Erro ao excluir notificações');
         }
     };
