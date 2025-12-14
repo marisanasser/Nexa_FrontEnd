@@ -5,8 +5,7 @@ import {
     selectNotifications,
     markNotificationAsRead,
     deleteNotification,
-    markAllNotificationsAsRead,
-    selectUnreadCount
+    markAllNotificationsAsRead
 } from '../store/slices/notificationSlice';
 import { Button } from '../components/ui/button';
 import { Card, CardContent } from '../components/ui/card';
@@ -20,7 +19,7 @@ const NotificationsPage = () => {
     const navigate = useNavigate();
     const { token } = useAppSelector((state) => state.auth);
     const notifications = useAppSelector(selectNotifications);
-    const unreadCount = useAppSelector(selectUnreadCount);
+    const unreadCount = notifications.filter(n => !n.is_read).length;
     const [filter, setFilter] = useState<'all' | 'unread'>('all');
 
     useEffect(() => {
@@ -63,6 +62,23 @@ const NotificationsPage = () => {
             toast.success('Todas as notificações marcadas como lidas');
         } catch (error) {
             toast.error('Erro ao marcar notificações como lidas');
+        }
+    };
+
+    const handleDeleteAllNotifications = async () => {
+        if (!token) return;
+        if (notifications.length === 0) return;
+        
+        try {
+            await Promise.all(
+                notifications.map((notification) =>
+                    dispatch(deleteNotification({ notificationId: notification.id, token })).unwrap()
+                        .catch(() => null)
+                )
+            );
+            toast.success('Todas as notificações foram excluídas');
+        } catch (error) {
+            toast.error('Erro ao excluir notificações');
         }
     };
 
@@ -170,6 +186,16 @@ const NotificationsPage = () => {
                             >
                                 <Check className="w-4 h-4" />
                                 Marcar todas como lidas
+                            </Button>
+                        )}
+                        {notifications.length > 0 && (
+                            <Button
+                                variant="outline"
+                                onClick={handleDeleteAllNotifications}
+                                className="flex items-center gap-2 text-red-600 border-red-600 hover:bg-red-50"
+                            >
+                                <Trash2 className="w-4 h-4" />
+                                Excluir todas
                             </Button>
                         )}
                     </div>

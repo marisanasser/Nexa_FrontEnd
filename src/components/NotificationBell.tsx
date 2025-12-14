@@ -11,7 +11,6 @@ import { useAppSelector, useAppDispatch } from '../store/hooks';
 import { 
     fetchUnreadCount, 
     fetchNotifications,
-    selectUnreadCount,
     selectNotifications,
     selectHasInitialData,
     selectNotificationLoading,
@@ -27,7 +26,6 @@ const NotificationBell = () => {
     const dispatch = useAppDispatch();
     const navigate = useNavigate();
     const { token, user } = useAppSelector((state) => state.auth);
-    const unreadCount = useAppSelector(selectUnreadCount);
     const notifications = useAppSelector(selectNotifications);
     const hasInitialData = useAppSelector(selectHasInitialData);
     const isLoading = useAppSelector(selectNotificationLoading);
@@ -74,8 +72,8 @@ const NotificationBell = () => {
             return () => clearTimeout(timeoutId);
         }
     }, [dispatch, token, hasInitialData, isLoading]);
-    
-    
+    const unreadCount = notifications.filter((n) => !n.is_read).length;
+
     const recentNotifications = notifications.slice(0, 5);
 
     const handleDeleteNotification = async (notificationId: number, event: React.MouseEvent) => {
@@ -110,6 +108,23 @@ const NotificationBell = () => {
             toast.success('Todas as notificações marcadas como lidas');
         } catch (error) {
             toast.error('Erro ao marcar notificações como lidas');
+        }
+    };
+
+    const handleDeleteAllNotifications = async () => {
+        if (!token) return;
+        if (notifications.length === 0) return;
+        
+        try {
+            await Promise.all(
+                notifications.map((notification) =>
+                    dispatch(deleteNotification({ notificationId: notification.id, token })).unwrap()
+                        .catch(() => null)
+                )
+            );
+            toast.success('Todas as notificações foram excluídas');
+        } catch (error) {
+            toast.error('Erro ao excluir notificações');
         }
     };
 
@@ -246,16 +261,28 @@ const NotificationBell = () => {
                     )}
                 </div>
                 
-                {unreadCount > 0 && (
-                    <div className="p-3 border-t">
-                        <Button 
-                            variant="outline" 
-                            size="sm" 
-                            className="w-full"
-                            onClick={handleMarkAllAsRead}
-                        >
-                            Marcar todas como lidas
-                        </Button>
+                {(notifications.length > 0 || unreadCount > 0) && (
+                    <div className="p-3 border-t flex flex-col gap-2">
+                        {unreadCount > 0 && (
+                            <Button 
+                                variant="outline" 
+                                size="sm" 
+                                className="w-full"
+                                onClick={handleMarkAllAsRead}
+                            >
+                                Marcar todas como lidas
+                            </Button>
+                        )}
+                        {notifications.length > 0 && (
+                            <Button 
+                                variant="outline" 
+                                size="sm" 
+                                className="w-full text-red-600 border-red-600 hover:bg-red-50"
+                                onClick={handleDeleteAllNotifications}
+                            >
+                                Excluir todas as notificações
+                            </Button>
+                        )}
                     </div>
                 )}
             </PopoverContent>

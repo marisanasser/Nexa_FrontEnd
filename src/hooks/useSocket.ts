@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import { useAppSelector, useAppDispatch } from '../store/hooks';
 import { apiClient } from '../services/apiClient';
 import { Message } from '../services/chatService';
-import { addNotification } from '../store/slices/notificationSlice';
+import { addNotification, incrementUnreadCount } from '../store/slices/notificationSlice';
 import { getEcho } from '../lib/echo';
 
 interface UseSocketReturn {
@@ -46,7 +46,6 @@ export const useSocket = (options: UseSocketOptions = {}): UseSocketReturn => {
     const [connectionError, setConnectionError] = useState<string | null>(null);
     const isMountedRef = useRef(true);
     const activeChannelsRef = useRef<Set<string>>(new Set());
-    const seenNotificationIdsRef = useRef<Set<number | string>>(new Set());
     
     // Event handlers storage
     const eventHandlersRef = useRef<{ [key: string]: Set<Function> }>({
@@ -102,41 +101,16 @@ export const useSocket = (options: UseSocketOptions = {}): UseSocketReturn => {
             }
         }
 
+        // Setup notification channel
         if (enableNotifications && user.id) {
             const channelName = `App.Models.User.${user.id}`;
             if (!activeChannelsRef.current.has(channelName)) {
                 echo.private(channelName)
                     .listen('.new_notification', (data: any) => {
-                        const isChatNotification =
-                            data?.type === 'new_message' &&
-                            data?.data &&
-                            (data.data.chat_type === 'campaign' || data.data.chat_type === 'direct');
-
-                        let isChatOpen = false;
-                        if (typeof window !== 'undefined') {
-                            const w = window as any;
-                            isChatOpen = Boolean(w.__NEXA_CHAT_OPEN);
-                        }
-
-                        if (isChatNotification && isChatOpen) {
-                            return;
-                        }
-
-                        const notificationId =
-                            (data && (data.id ?? data.notification_id)) as number | string | undefined;
-
-                        if (notificationId !== undefined && notificationId !== null) {
-                            if (seenNotificationIdsRef.current.has(notificationId)) {
-                                return;
-                            }
-                            seenNotificationIdsRef.current.add(notificationId);
-                            if (seenNotificationIdsRef.current.size > 500) {
-                                const first = seenNotificationIdsRef.current.values().next().value;
-                                seenNotificationIdsRef.current.delete(first);
-                            }
-                        }
-
                         dispatch(addNotification(data));
+                        if (!data.is_read) {
+                            dispatch(incrementUnreadCount());
+                        }
                     });
                 activeChannelsRef.current.add(channelName);
             }
@@ -151,16 +125,15 @@ export const useSocket = (options: UseSocketOptions = {}): UseSocketReturn => {
 
         return () => {
             isMountedRef.current = false;
-            if (echoRef.current) {
-                activeChannelsRef.current.forEach((channelName) => {
-                    try {
-                        echoRef.current.leave(channelName);
-                    } catch (e) {
-                        console.error('Error leaving channel', channelName, e);
-                    }
-                });
-                activeChannelsRef.current.clear();
-            }
+            // We don't necessarily want to disconnect Echo here if it's shared,
+            // but since we treat it as singleton in getEcho, we leave it be.
+            // However, we should unsubscribe from channels if we joined them?
+            // For now, let's leave channels active to avoid constant resubscribe on re-renders
+            // unless we strictly want to clean up.
+            
+            // Actually, if we use a singleton Echo, we should probably track channel subscriptions
+            // globally or risk memory leaks.
+            // For this implementation, we rely on Echo's internal management.
         };
     }, [initializeEcho]);
 
@@ -198,14 +171,16 @@ export const useSocket = (options: UseSocketOptions = {}): UseSocketReturn => {
         // Bind backend events
         channel.listen('.new_message', (data: any) => dispatchEvent('new_message', data));
         channel.listen('.messages_read', (data: any) => dispatchEvent('messages_read', data));
+        
+        // Contract/Offer events
         channel.listen('.offer_created', (data: any) => dispatchEvent('offer_created', data));
-            channel.listen('.offer_accepted', (data: any) => dispatchEvent('offer_accepted', data));
-            channel.listen('.offer_rejected', (data: any) => dispatchEvent('offer_rejected', data));
-            channel.listen('.offer_cancelled', (data: any) => dispatchEvent('offer_cancelled', data));
-            channel.listen('.contract_activated', (data: any) => dispatchEvent('contract_activated', data));
-            channel.listen('.contract_completed', (data: any) => dispatchEvent('contract_completed', data));
-            channel.listen('.contract_terminated', (data: any) => dispatchEvent('contract_terminated', data));
-            // channel.listen('.contract_status_update', (data: any) => dispatchEvent('contract_status_update', data)); // Not found in events yet
+        channel.listen('.offer_accepted', (data: any) => dispatchEvent('offer_accepted', data));
+        channel.listen('.offer_rejected', (data: any) => dispatchEvent('offer_rejected', data));
+        channel.listen('.offer_cancelled', (data: any) => dispatchEvent('offer_cancelled', data));
+        channel.listen('.contract_completed', (data: any) => dispatchEvent('contract_completed', data));
+        channel.listen('.contract_terminated', (data: any) => dispatchEvent('contract_terminated', data));
+        channel.listen('.contract_activated', (data: any) => dispatchEvent('contract_activated', data));
+        // channel.listen('.contract_status_update', (data: any) => dispatchEvent('contract_status_update', data)); // Not found in events yet
         
         // Whisper events (Client-to-Client)
         channel.listenForWhisper('typing', (data: any) => {
