@@ -112,7 +112,7 @@ export default function ChatPage({ setComponent, campaignId, creatorId }: ChatPa
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingRooms, setIsLoadingRooms] = useState(false);
   const [typingUsers, setTypingUsers] = useState<Set<string>>(new Set());
   const [isCurrentUserTyping, setIsCurrentUserTyping] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -173,6 +173,9 @@ export default function ChatPage({ setComponent, campaignId, creatorId }: ChatPa
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isMountedRef = useRef(true);
   const [viewportOffset, setViewportOffset] = useState(0);
+  const [isLoadingMessages, setIsLoadingMessages] = useState(false);
+  const [messagesPage, setMessagesPage] = useState(1);
+  const [hasMoreMessages, setHasMoreMessages] = useState(false);
 
   useEffect(() => {
     const vv = (window as any).visualViewport as VisualViewport | undefined;
@@ -799,8 +802,8 @@ export default function ChatPage({ setComponent, campaignId, creatorId }: ChatPa
     if (!isMountedRef.current) return;
 
     try {
-      setIsLoading(true);
-      const response = await chatService.getChatRooms();
+      setIsLoadingRooms(true);
+      const response = await chatService.getChatRooms(1, 100);
       if (isMountedRef.current) {
         const roomsData = response || [];
         
@@ -824,7 +827,7 @@ export default function ChatPage({ setComponent, campaignId, creatorId }: ChatPa
       });
     } finally {
       if (isMountedRef.current) {
-        setIsLoading(false);
+        setIsLoadingRooms(false);
       }
     }
   };
@@ -849,7 +852,12 @@ export default function ChatPage({ setComponent, campaignId, creatorId }: ChatPa
     setSelectedRoom(room);
 
     
-    await loadMessages(room.room_id);
+    setMessages([]);
+    setMessagesPage(1);
+    setHasMoreMessages(false);
+
+    
+    await loadMessages(room.room_id, 1, false);
 
     
     await loadContracts(room.room_id);
@@ -868,12 +876,17 @@ export default function ChatPage({ setComponent, campaignId, creatorId }: ChatPa
   };
 
   
-  const loadMessages = useCallback(async (roomId: string) => {
+  const loadMessages = useCallback(async (roomId: string, page: number = 1, append: boolean = false) => {
     if (!isMountedRef.current) return;
 
     try {
-      setIsLoading(true);
-      const response = await chatService.getMessages(roomId);
+      if (append) {
+        setIsLoadingMessages(true);
+      } else {
+        setIsLoadingMessages(true);
+      }
+
+      const response = await chatService.getMessages(roomId, page, 50);
       if (isMountedRef.current) {
         
         const messageIds = new Set();
@@ -1054,7 +1067,23 @@ export default function ChatPage({ setComponent, campaignId, creatorId }: ChatPa
           }
         }
 
-        setMessages(finalMessages);
+        if (append) {
+          setMessages((prev) => {
+            const existingIds = new Set(prev.map((m) => m.id));
+            const newMessages = finalMessages.filter((m) => !existingIds.has(m.id));
+            return [...newMessages, ...prev];
+          });
+          setMessagesPage(page);
+        } else {
+          setMessages(finalMessages);
+          setMessagesPage(page);
+        }
+
+        if (response.meta) {
+          setHasMoreMessages(response.meta.has_more);
+        } else {
+          setHasMoreMessages(false);
+        }
         
 
 
@@ -1086,7 +1115,7 @@ export default function ChatPage({ setComponent, campaignId, creatorId }: ChatPa
       });
     } finally {
       if (isMountedRef.current) {
-        setIsLoading(false);
+        setIsLoadingMessages(false);
       }
     }
   }, [joinRoom, markMessagesAsRead, toast, user]);
@@ -1518,6 +1547,12 @@ export default function ChatPage({ setComponent, campaignId, creatorId }: ChatPa
   const handleOfferCreated = () => {
     setShowOfferModal(false);
     loadChatRooms();
+  };
+
+  const handleLoadMoreMessages = async () => {
+    if (!selectedRoom || !hasMoreMessages || isLoadingMessages) return;
+    const nextPage = messagesPage + 1;
+    await loadMessages(selectedRoom.room_id, nextPage, true);
   };
 
   
@@ -2733,9 +2768,21 @@ export default function ChatPage({ setComponent, campaignId, creatorId }: ChatPa
       <div className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-pink-500 scrollbar-track-transparent hover:scrollbar-thumb-pink-600">
         {}
         <div className="p-2 w-full md:w-[383px] md:mx-0 mx-auto">
-          {isLoading ? (
-            <div className="flex items-center justify-center py-8">
-              <div className="w-6 h-6 border-2 border-pink-500 border-t-transparent rounded-full animate-spin" />
+          {isLoadingRooms ? (
+            <div className="space-y-3 py-2">
+              {[1, 2, 3, 4].map((item) => (
+                <div
+                  key={item}
+                  className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50 animate-pulse"
+                >
+                  <div className="w-12 h-12 rounded-full bg-slate-200 dark:bg-slate-700 flex-shrink-0" />
+                  <div className="flex-1 space-y-2">
+                    <div className="h-3 w-1/2 rounded bg-slate-200 dark:bg-slate-700" />
+                    <div className="h-2 w-3/4 rounded bg-slate-200 dark:bg-slate-700" />
+                    <div className="h-2 w-2/3 rounded bg-slate-100 dark:bg-slate-800" />
+                  </div>
+                </div>
+              ))}
             </div>
           ) : filteredRooms.length === 0 ? (
             <div className="text-center py-8 text-slate-500 dark:text-slate-400">
@@ -2801,7 +2848,7 @@ export default function ChatPage({ setComponent, campaignId, creatorId }: ChatPa
       {selectedRoom ? (
         <>
           {}
-          <div className="flex items-center justify-between p-3 sm:p-4 border-b bg-background">
+          <div className="flex items-center justify-between p-2 sm:p-3 border-b bg-background">
             <div className="flex items-center gap-3 min-w-0 flex-1">
               {}
               <button
@@ -3069,6 +3116,37 @@ export default function ChatPage({ setComponent, campaignId, creatorId }: ChatPa
           {}
           <div className="flex-1 overflow-y-auto overflow-x-hidden p-3 sm:p-4 scrollbar-hide">
             <div className="space-y-4">
+              {hasMoreMessages && (
+                <div className="flex justify-center">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleLoadMoreMessages}
+                    disabled={isLoadingMessages}
+                    className="text-xs px-3 py-1"
+                  >
+                    {isLoadingMessages ? "Carregando mensagens..." : "Carregar mensagens anteriores"}
+                  </Button>
+                </div>
+              )}
+
+              {isLoadingMessages && messages.length === 0 ? (
+                <div className="space-y-3">
+                  {[1, 2, 3].map((item) => (
+                    <div
+                      key={item}
+                      className="flex gap-3"
+                    >
+                      <div className="w-8 h-8 rounded-full bg-slate-200 dark:bg-slate-700" />
+                      <div className="flex-1 space-y-2">
+                        <div className="h-3 w-2/3 rounded bg-slate-200 dark:bg-slate-700" />
+                        <div className="h-3 w-1/2 rounded bg-slate-100 dark:bg-slate-800" />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <>
               {messages.map((message) => {
                 return (
                   <div
@@ -3135,6 +3213,8 @@ export default function ChatPage({ setComponent, campaignId, creatorId }: ChatPa
                 );
               })}
               <div ref={messagesEndRef} />
+              </>
+              )}
             </div>
           </div>
 
@@ -3277,7 +3357,7 @@ export default function ChatPage({ setComponent, campaignId, creatorId }: ChatPa
 
               {}
               {typingUsers.size > 0 && (
-                <div className="absolute -top-8 left-0 right-0 flex items-center gap-2 px-4 py-2">
+                <div className="absolute bottom-12 left-0 right-0 flex items-center gap-2 px-4 py-2">
                   <div className="flex items-center gap-2">
                     <div className="flex space-x-1">
                       <div

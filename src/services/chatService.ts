@@ -79,6 +79,14 @@ export interface ConnectionRequest {
     created_at: string;
 }
 
+export interface PaginationMeta {
+    current_page: number;
+    last_page: number;
+    per_page: number;
+    total: number;
+    has_more: boolean;
+}
+
 export interface ChatRoomResponse {
     room: {
         id: number;
@@ -87,22 +95,33 @@ export interface ChatRoomResponse {
         campaign_title: string;
     };
     messages: Message[];
+    meta?: PaginationMeta;
 }
 
 class ChatService {
     
-    async getChatRooms(): Promise<ChatRoom[]> {
-        const response = await apiClient.get('/chat/rooms');
+    async getChatRooms(page: number = 1, perPage: number = 100): Promise<ChatRoom[]> {
+        const response = await apiClient.get('/chat/rooms', {
+            params: {
+                page,
+                per_page: perPage,
+            },
+        });
         return response.data.data;
     }
 
     
-    async getMessages(roomId: string): Promise<ChatRoomResponse> {
-        const timestamp = Date.now(); 
-        const url = `/chat/rooms/${roomId}/messages?t=${timestamp}`;
+    async getMessages(roomId: string, page: number = 1, perPage: number = 50): Promise<ChatRoomResponse> {
+        const timestamp = Date.now();
         
         try {
-            const response = await apiClient.get(url);
+            const response = await apiClient.get(`/chat/rooms/${roomId}/messages`, {
+                params: {
+                    t: timestamp,
+                    page,
+                    per_page: perPage,
+                },
+            });
             return response.data.data;
         } catch (error) {
             console.error('[ChatService] Error getting messages:', error);
