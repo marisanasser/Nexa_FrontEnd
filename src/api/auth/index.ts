@@ -16,17 +16,21 @@ const AuthAPI = axios.create({
 
 AuthAPI.interceptors.request.use(
     (config) => {
-        
+        console.log('AuthAPI request:', {
+            url: config.url,
+            method: config.method,
+            baseURL: config.baseURL,
+            hasData: !!config.data,
+        });
+
         if (config.url && (config.url.includes('/login') || config.url.includes('/register'))) {
         } else {
-            
             const token = getTokenFromStore();
             if (token) {
                 config.headers.Authorization = `Bearer ${token}`;
             }
         }
 
-        
         if (config.data instanceof FormData) {
             delete config.headers['Content-Type'];
         }
@@ -34,14 +38,28 @@ AuthAPI.interceptors.request.use(
         return config;
     },
     (error) => {
+        console.error('AuthAPI request error:', error);
         return Promise.reject(error);
     }
 );
 
 
 AuthAPI.interceptors.response.use(
-    (response) => response,
+    (response) => {
+        console.log('AuthAPI response:', {
+            url: response.config?.url,
+            status: response.status,
+            dataPreview: typeof response.data === 'string' ? response.data.slice(0, 200) : response.data,
+        });
+        return response;
+    },
     (error) => {
+        console.error('AuthAPI response error:', {
+            url: error.config?.url,
+            method: error.config?.method,
+            status: error.response?.status,
+            data: error.response?.data,
+        });
         if (error.response?.status === 401) {
             
             
@@ -75,7 +93,6 @@ AuthAPI.interceptors.response.use(
             }
             console.warn('Rate limited:', error.message);
         } else if (error.response?.status >= 500) {
-            
             console.error('Server error:', error.response?.status, error.response?.statusText);
         }
         return Promise.reject(error);

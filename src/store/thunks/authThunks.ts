@@ -57,14 +57,18 @@ export const signupUser = createAsyncThunk(
         user: response.user,
         token: response.token,
       };
-      dispatch(signupSuccess(authData));
+
+      dispatch(loginSuccess(authData));
       return authData;
     } catch (error: unknown) {
+      console.error('loginUser thunk: caught error', error);
       const apiError = handleApiError(error);
-      
-      
-      if (apiError.response?.data?.can_restore) {
-        const restorationData = apiError.response.data;
+      console.error('loginUser thunk: apiError', apiError);
+
+      const rawError: any = error;
+
+      if (rawError.response?.data?.errors?.email === 'account_removed_restorable') {
+        const restorationData = rawError.response.data;
         dispatch(signupFailure('account_removed_restorable'));
         return rejectWithValue({
           type: 'account_removed_restorable',
@@ -86,10 +90,12 @@ export const loginUser = createAsyncThunk(
   'auth/login',
   async (credentials: LoginCredentials, { dispatch, rejectWithValue }: any) => {
     try {
+      console.log('loginUser thunk: starting login with credentials', {
+        email: credentials.email,
+      });
       dispatch(loginStart());
-      
       const response = await signin(credentials);
-      
+      console.log('loginUser thunk: signin response', response);
       if (!response.success) {
         throw new Error(response.message || 'Falha no login');
       }
@@ -103,10 +109,11 @@ export const loginUser = createAsyncThunk(
       return authData;
     } catch (error: unknown) {
       const apiError = handleApiError(error);
-      
-      
-      if (apiError.response?.data?.errors?.email === 'account_removed_restorable') {
-        const restorationData = apiError.response.data.errors;
+
+      const rawError: any = error;
+
+      if (rawError.response?.data?.errors?.email === 'account_removed_restorable') {
+        const restorationData = rawError.response.data.errors;
         dispatch(loginFailure('account_removed_restorable'));
         return rejectWithValue({
           type: 'account_removed_restorable',
@@ -174,11 +181,14 @@ export const initiateGoogleOAuthFlow = createAsyncThunk(
       if (typeof params === 'object' && params !== null) {
         role = params.role;
         isStudent = params.isStudent || false;
-      } else {
+      } else if (typeof params === 'string') {
         role = params;
         isStudent = false;
+      } else {
+        role = undefined;
+        isStudent = false;
       }
-      
+
       await initiateGoogleOAuth(role, isStudent);
     } catch (error: unknown) {
       const apiError = handleApiError(error);
