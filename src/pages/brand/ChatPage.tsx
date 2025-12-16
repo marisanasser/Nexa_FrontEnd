@@ -123,7 +123,7 @@ export default function ChatPage({ setComponent, campaignId, creatorId }: ChatPa
   const [searchQuery, setSearchQuery] = useState("");
   const [openDropdowns, setOpenDropdowns] = useState<Set<number>>(new Set());
 
-  
+
   const [showOfferModal, setShowOfferModal] = useState(false);
   const [offers, setOffers] = useState<Offer[]>([]);
   const [isLoadingOffers, setIsLoadingOffers] = useState(false);
@@ -131,11 +131,11 @@ export default function ChatPage({ setComponent, campaignId, creatorId }: ChatPa
   const [existingOfferId, setExistingOfferId] = useState<number | null>(null);
   const [showExistingOfferModal, setShowExistingOfferModal] = useState(false);
 
-  
+
   const [contracts, setContracts] = useState<any[]>([]);
   const [isLoadingContracts, setIsLoadingContracts] = useState(false);
 
-  
+
   const [imageViewer, setImageViewer] = useState<{
     isOpen: boolean;
     imageUrl: string;
@@ -150,20 +150,20 @@ export default function ChatPage({ setComponent, campaignId, creatorId }: ChatPa
   const [imageZoom, setImageZoom] = useState(1);
   const [imageRotation, setImageRotation] = useState(0);
 
-  
+
   const [showReviewModal, setShowReviewModal] = useState(false);
   const [contractToReview, setContractToReview] = useState<any>(null);
 
-  
+
   const [showCampaignFinalizationModal, setShowCampaignFinalizationModal] = useState(false);
   const [contractToFinalize, setContractToFinalize] = useState<any>(null);
 
-  
+
   const [showTerminateModal, setShowTerminateModal] = useState(false);
   const [contractToTerminate, setContractToTerminate] = useState<any>(null);
   const [terminationMessage, setTerminationMessage] = useState("");
 
-  
+
   const [showTimelineSidebar, setShowTimelineSidebar] = useState(false);
   const isOtherUserOnline = selectedRoom?.other_user?.online === true;
 
@@ -182,6 +182,8 @@ export default function ChatPage({ setComponent, campaignId, creatorId }: ChatPa
     if (sentMessages.length === 0) return null;
     return sentMessages[sentMessages.length - 1].id;
   }, [messages]);
+
+
 
   useEffect(() => {
     const vv = (window as any).visualViewport as VisualViewport | undefined;
@@ -206,7 +208,7 @@ export default function ChatPage({ setComponent, campaignId, creatorId }: ChatPa
   const imageViewerRef = useRef<HTMLDivElement>(null);
 
 
-  
+
   const {
     isConnected,
     connectionError,
@@ -232,7 +234,7 @@ export default function ChatPage({ setComponent, campaignId, creatorId }: ChatPa
     onContractTerminated,
   } = useSocket({ enableNotifications: false, enableChat: true });
 
-  
+
   useEffect(() => {
     isMountedRef.current = true;
 
@@ -256,7 +258,7 @@ export default function ChatPage({ setComponent, campaignId, creatorId }: ChatPa
           w.__NEXA_ACTIVE_CHAT_ROOM_ID = null;
         }
       }
-      
+
       if (typingTimeoutRef.current) {
         clearTimeout(typingTimeoutRef.current);
         typingTimeoutRef.current = null;
@@ -265,14 +267,14 @@ export default function ChatPage({ setComponent, campaignId, creatorId }: ChatPa
     };
   }, []);
 
-  
+
   useEffect(() => {
     if (isMountedRef.current) {
       loadChatRooms();
     }
-  }, []); 
+  }, []);
 
-  
+
   useEffect(() => {
     return () => {
       if (selectedRoom && isCurrentUserTyping) {
@@ -286,7 +288,7 @@ export default function ChatPage({ setComponent, campaignId, creatorId }: ChatPa
     };
   }, [selectedRoom, isCurrentUserTyping, stopTyping]);
 
-  
+
   useEffect(() => {
     setTypingUsers(new Set());
   }, [selectedRoom?.room_id]);
@@ -301,8 +303,45 @@ export default function ChatPage({ setComponent, campaignId, creatorId }: ChatPa
       }
     }
   }, [selectedRoom?.room_id]);
+  const handleConversationSelect = async (room: ChatRoom) => {
+    if (!isMountedRef.current) return;
 
-  
+
+    if (selectedRoom && isCurrentUserTyping) {
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+        typingTimeoutRef.current = null;
+      }
+      setIsCurrentUserTyping(false);
+      stopTyping(selectedRoom.room_id);
+    }
+
+
+    setTypingUsers(new Set());
+
+    setSelectedRoom(room);
+
+
+    setMessages([]);
+    setMessagesPage(1);
+    setHasMoreMessages(false);
+
+
+    await loadMessages(room.room_id, 1, false);
+
+
+    await loadContracts(room.room_id);
+
+
+    await loadOffers(room.room_id);
+
+    setTimeout(() => {
+      if (inputRef.current && isMountedRef.current) {
+        inputRef.current.focus();
+      }
+    }, 100);
+  };
+
   useEffect(() => {
     if (!isMountedRef.current) return;
 
@@ -311,31 +350,31 @@ export default function ChatPage({ setComponent, campaignId, creatorId }: ChatPa
       const room = chatRooms.find((r) => r.room_id === selectedRoomId);
       if (room) {
         handleConversationSelect(room);
-        localStorage.removeItem("selectedChatRoom"); 
+        localStorage.removeItem("selectedChatRoom");
       }
     }
   }, [chatRooms, handleConversationSelect]);
 
-  
+
   useEffect(() => {
     if (!isMountedRef.current || !campaignId || !creatorId || chatRooms.length === 0) return;
-    
-    
-    const room = chatRooms.find((r) => 
-      r.campaign_id === campaignId && 
+
+
+    const room = chatRooms.find((r) =>
+      r.campaign_id === campaignId &&
       r.other_user.id === parseInt(creatorId)
     );
-    
+
     if (room) {
       handleConversationSelect(room);
     }
   }, [campaignId, creatorId, chatRooms, handleConversationSelect]);
 
-  
+
   useEffect(() => {
     if (!isMountedRef.current) return;
 
-    
+
     const scrollToBottom = () => {
       if (messagesEndRef.current && isMountedRef.current) {
         try {
@@ -349,7 +388,7 @@ export default function ChatPage({ setComponent, campaignId, creatorId }: ChatPa
     requestAnimationFrame(scrollToBottom);
   }, [messages]);
 
-  
+
   useEffect(() => {
     if (!isMountedRef.current) return;
 
@@ -365,23 +404,23 @@ export default function ChatPage({ setComponent, campaignId, creatorId }: ChatPa
     }
   }, [selectedRoom, joinRoom, leaveRoom]);
 
-      
 
 
 
-  
+
+
   useEffect(() => {
     if (!isMountedRef.current) return;
 
-    
+
     const handleNewMessage = (data: any) => {
       if (!isMountedRef.current) return;
 
       if (data.roomId === selectedRoom?.room_id) {
-        
+
         if (data.senderId !== user?.id) {
           const newMessage: Message = {
-            id: data.messageId || Date.now(), 
+            id: data.messageId || Date.now(),
             message: data.message,
             message_type: data.messageType,
             sender_id: data.senderId,
@@ -395,11 +434,11 @@ export default function ChatPage({ setComponent, campaignId, creatorId }: ChatPa
             file_url: data.fileData?.file_url,
             is_read: false,
             created_at: data.timestamp || new Date().toISOString(),
-            offer_data: data.offerData, 
+            offer_data: data.offerData,
           };
 
           setMessages((prev) => {
-            
+
             if (prev.some(msg => msg.id === newMessage.id)) {
               console.warn('Attempted to add duplicate socket message:', newMessage.id);
               return prev;
@@ -407,15 +446,15 @@ export default function ChatPage({ setComponent, campaignId, creatorId }: ChatPa
             return [...prev, newMessage];
           });
 
-          
+
           markMessagesAsRead(data.roomId, [newMessage.id]).catch((error) => {
             console.warn("Error marking message as read:", error);
           });
         }
       }
 
-      
-      
+
+
       const roomUpdateMessage: Message = {
         id: data.messageId || Date.now(),
         message: data.message,
@@ -453,8 +492,8 @@ export default function ChatPage({ setComponent, campaignId, creatorId }: ChatPa
           }
           return room;
         });
-        
-        
+
+
         return updatedRooms.sort((a, b) => {
           const aTime = a.last_message_at ? new Date(a.last_message_at).getTime() : 0;
           const bTime = b.last_message_at ? new Date(b.last_message_at).getTime() : 0;
@@ -463,7 +502,7 @@ export default function ChatPage({ setComponent, campaignId, creatorId }: ChatPa
       });
     };
 
-    
+
     const handleUserTyping = (data: any) => {
       if (!isMountedRef.current) return;
 
@@ -480,7 +519,7 @@ export default function ChatPage({ setComponent, campaignId, creatorId }: ChatPa
       }
     };
 
-    
+
     const handleMessagesRead = (data: any) => {
       if (!isMountedRef.current) return;
 
@@ -506,16 +545,16 @@ export default function ChatPage({ setComponent, campaignId, creatorId }: ChatPa
     };
   }, [selectedRoom, user, markMessagesAsRead, onNewMessage, onUserTyping, onMessagesRead]);
 
-  
+
   useEffect(() => {
     if (!isMountedRef.current) return;
 
-    
+
     const handleOfferCreated = (data: any) => {
       if (!isMountedRef.current) return;
 
       if (data.roomId === selectedRoom?.room_id) {
-        
+
         setOffers((prev) => {
           const newOffer: Offer = {
             id: data.offerData.id,
@@ -529,8 +568,8 @@ export default function ChatPage({ setComponent, campaignId, creatorId }: ChatPa
             days_until_expiry: data.offerData.days_until_expiry,
             is_expiring_soon: data.offerData.days_until_expiry <= 1,
             is_expired: data.offerData.status === 'expired',
-            can_be_accepted: false, 
-            can_be_rejected: false, 
+            can_be_accepted: false,
+            can_be_rejected: false,
             can_be_cancelled: data.offerData.status === 'pending' && user?.role === 'brand',
             other_user: {
               id: user?.role === 'brand' ? data.offerData.creator_id : data.offerData.brand_id,
@@ -542,17 +581,17 @@ export default function ChatPage({ setComponent, campaignId, creatorId }: ChatPa
           return [newOffer, ...prev];
         });
 
-        
+
         loadMessages(selectedRoom.room_id);
       }
     };
 
-    
+
     const handleOfferAccepted = (data: any) => {
       if (!isMountedRef.current) return;
 
       if (data.roomId === selectedRoom?.room_id) {
-        
+
         setOffers((prev) =>
           prev.map((offer) =>
             offer.id === data.offerData.id
@@ -561,7 +600,7 @@ export default function ChatPage({ setComponent, campaignId, creatorId }: ChatPa
           )
         );
 
-        
+
         if (data.contractData) {
           setContracts((prev) => {
             const newContract = {
@@ -576,21 +615,21 @@ export default function ChatPage({ setComponent, campaignId, creatorId }: ChatPa
           });
         }
 
-        
+
         loadMessages(selectedRoom.room_id);
       }
     };
 
-    
+
     const handleOfferAcceptanceMessage = (data: any) => {
-      
+
       if (!isMountedRef.current) return;
 
       if (data.roomId === selectedRoom?.room_id) {
-        
-        
+
+
         const confirmationMessage: Message = {
-          id: Date.now(), 
+          id: Date.now(),
           message: `✅ Oferta aceita com sucesso! Contrato criado.`,
           message_type: 'text',
           sender_id: data.senderId,
@@ -603,21 +642,21 @@ export default function ChatPage({ setComponent, campaignId, creatorId }: ChatPa
 
         setMessages((prev) => [...prev, confirmationMessage]);
 
-        
+
         setTimeout(() => {
           if (messagesEndRef.current) {
             messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
           }
         }, 100);
-      } 
+      }
     };
 
-    
+
     const handleOfferRejected = (data: any) => {
       if (!isMountedRef.current) return;
 
       if (data.roomId === selectedRoom?.room_id) {
-        
+
         setOffers((prev) =>
           prev.map((offer) =>
             offer.id === data.offerData.id
@@ -626,17 +665,17 @@ export default function ChatPage({ setComponent, campaignId, creatorId }: ChatPa
           )
         );
 
-        
+
         loadMessages(selectedRoom.room_id);
       }
     };
 
-    
+
     const handleOfferCancelled = (data: any) => {
       if (!isMountedRef.current) return;
 
       if (data.roomId === selectedRoom?.room_id) {
-        
+
         setOffers((prev) =>
           prev.map((offer) =>
             offer.id === data.offerData.id
@@ -645,17 +684,17 @@ export default function ChatPage({ setComponent, campaignId, creatorId }: ChatPa
           )
         );
 
-        
+
         loadMessages(selectedRoom.room_id);
       }
     };
 
-    
+
     const handleContractCompleted = (data: any) => {
       if (!isMountedRef.current) return;
 
       if (data.roomId === selectedRoom?.room_id) {
-        
+
         setContracts((prev) =>
           prev.map((contract) =>
             contract.id === data.contractData.id
@@ -670,23 +709,23 @@ export default function ChatPage({ setComponent, campaignId, creatorId }: ChatPa
           )
         );
 
-        
+
         toast({
           title: "Contrato Finalizado",
           description: "O contrato foi finalizado com sucesso!",
         });
 
-        
+
         loadMessages(selectedRoom.room_id);
       }
     };
 
-    
+
     const handleContractTerminated = (data: any) => {
       if (!isMountedRef.current) return;
 
       if (data.roomId === selectedRoom?.room_id) {
-        
+
         setContracts((prev) =>
           prev.map((contract) =>
             contract.id === data.contractData.id
@@ -700,23 +739,23 @@ export default function ChatPage({ setComponent, campaignId, creatorId }: ChatPa
           )
         );
 
-        
+
         toast({
           title: "Contrato Terminado",
           description: data.terminationReason || "O contrato foi terminado",
         });
 
-        
+
         loadMessages(selectedRoom.room_id);
       }
     };
 
-    
+
     const handleContractActivated = (data: any) => {
       if (!isMountedRef.current) return;
 
       if (data.roomId === selectedRoom?.room_id) {
-        
+
         setContracts((prev) => {
           const existingContract = prev.find(c => c.id === data.contractData.id);
           if (existingContract) {
@@ -731,25 +770,25 @@ export default function ChatPage({ setComponent, campaignId, creatorId }: ChatPa
                 : contract
             );
           } else {
-            
+
             return [data.contractData, ...prev];
           }
         });
 
-        
 
-        
+
+
         toast({
           title: "Contrato Ativado",
           description: "O contrato foi ativado com sucesso!",
         });
 
-        
+
         loadMessages(selectedRoom.room_id);
       }
     };
 
-    
+
     const cleanupOfferCreated = onOfferCreated(handleOfferCreated);
     const cleanupOfferAccepted = onOfferAccepted(handleOfferAccepted);
     const cleanupOfferAcceptanceMessage = onOfferAcceptanceMessage(handleOfferAcceptanceMessage);
@@ -771,12 +810,12 @@ export default function ChatPage({ setComponent, campaignId, creatorId }: ChatPa
     };
   }, [selectedRoom, user, onOfferCreated, onOfferAccepted, onOfferRejected, onOfferCancelled, onContractCompleted, onContractActivated, onOfferAcceptanceMessage, onContractTerminated]);
 
-  
+
   useEffect(() => {
     if (typingUsers.size > 0) {
       const timeoutId = setTimeout(() => {
         setTypingUsers(new Set());
-      }, 3000); 
+      }, 3000);
 
       return () => {
         clearTimeout(timeoutId);
@@ -792,7 +831,7 @@ export default function ChatPage({ setComponent, campaignId, creatorId }: ChatPa
       const response = await chatService.getChatRooms(1, 100);
       if (isMountedRef.current) {
         const roomsData = response || [];
-        
+
         const sortedRooms = roomsData.sort((a, b) => {
           const aTime = a.last_message_at ? new Date(a.last_message_at).getTime() : 0;
           const bTime = b.last_message_at ? new Date(b.last_message_at).getTime() : 0;
@@ -800,7 +839,7 @@ export default function ChatPage({ setComponent, campaignId, creatorId }: ChatPa
         });
         setChatRooms(sortedRooms);
 
-        
+
         if (!selectedRoom && sortedRooms.length > 0) {
           handleConversationSelect(sortedRooms[0]);
         }
@@ -818,47 +857,10 @@ export default function ChatPage({ setComponent, campaignId, creatorId }: ChatPa
     }
   };
 
-  
-  const handleConversationSelect = async (room: ChatRoom) => {
-    if (!isMountedRef.current) return;
 
-    
-    if (selectedRoom && isCurrentUserTyping) {
-      if (typingTimeoutRef.current) {
-        clearTimeout(typingTimeoutRef.current);
-        typingTimeoutRef.current = null;
-      }
-      setIsCurrentUserTyping(false);
-      stopTyping(selectedRoom.room_id);
-    }
 
-    
-    setTypingUsers(new Set());
-    
-    setSelectedRoom(room);
 
-    
-    setMessages([]);
-    setMessagesPage(1);
-    setHasMoreMessages(false);
 
-    
-    await loadMessages(room.room_id, 1, false);
-
-    
-    await loadContracts(room.room_id);
-
-    
-    await loadOffers(room.room_id);
-
-    setTimeout(() => {
-      if (inputRef.current && isMountedRef.current) {
-        inputRef.current.focus();
-      }
-    }, 100);
-  };
-
-  
   const loadMessages = useCallback(async (roomId: string, page: number = 1, append: boolean = false) => {
     if (!isMountedRef.current) return;
 
@@ -871,27 +873,27 @@ export default function ChatPage({ setComponent, campaignId, creatorId }: ChatPa
 
       const response = await chatService.getMessages(roomId, page, 50);
       if (isMountedRef.current) {
-        
+
         const messageIds = new Set();
         const deduplicatedMessages = response.messages.filter((message) => {
           if (messageIds.has(message.id)) {
-            return false; 
+            return false;
           }
           messageIds.add(message.id);
           return true;
         });
 
-        
+
         const guideMessagesKey = `guide_messages_${roomId}`;
         const hasGuideMessagesInStorage = localStorage.getItem(guideMessagesKey);
         const needsGuideMessages = !hasGuideMessagesInStorage;
 
-        
+
         let finalMessages = [...deduplicatedMessages];
         if (needsGuideMessages && user) {
-          
+
           const isBrand = user.role === 'brand';
-          
+
           let guideMessage = '';
           if (isBrand) {
             guideMessage = "🎉 Parabéns pela parceria iniciada com uma criadora da nossa plataforma!\n\n" +
@@ -928,12 +930,12 @@ export default function ChatPage({ setComponent, campaignId, creatorId }: ChatPa
               "🚫 Caso a campanha seja cancelada, o produto deverá ser devolvido, e a criadora poderá ser punida.\n\n" +
               "Estamos aqui para garantir a melhor experiência para criadoras e marcas. Boa campanha! 💼💡";
           }
-          
+
           const quoteMessage = "💼 Detalhes da Campanha:\n\n" +
             "Status: 🟢 Conectado\n\n" +
             "Você está agora conectado e pode começar a conversar. Use o chat para todas as comunicações e siga as diretrizes da plataforma para uma parceria de sucesso.";
-          
-          
+
+
           const guideMsg: Message = {
             id: Date.now() + Math.floor(Math.random() * 1000),
             message: guideMessage,
@@ -945,8 +947,8 @@ export default function ChatPage({ setComponent, campaignId, creatorId }: ChatPa
             is_read: false,
             created_at: new Date().toISOString(),
           };
-          
-          
+
+
           const quoteMsg: Message = {
             id: Date.now() + Math.floor(Math.random() * 1000) + 1,
             message: quoteMessage,
@@ -958,26 +960,26 @@ export default function ChatPage({ setComponent, campaignId, creatorId }: ChatPa
             is_read: false,
             created_at: new Date().toISOString(),
           };
-          
-          
+
+
           finalMessages = [guideMsg, quoteMsg, ...deduplicatedMessages];
-          
-          
+
+
           localStorage.setItem(guideMessagesKey, 'true');
-          
-  
+
+
         } else if (hasGuideMessagesInStorage) {
-          
-          const existingGuideMessages = deduplicatedMessages.filter(msg => 
-            msg.message_type === 'system' && 
+
+          const existingGuideMessages = deduplicatedMessages.filter(msg =>
+            msg.message_type === 'system' &&
             (msg.message.includes('Parabéns') || msg.message.includes('parceria'))
           );
-          
+
           if (existingGuideMessages.length === 0) {
 
-            
+
             const isBrand = user?.role === 'brand';
-            
+
             let guideMessage = '';
             if (isBrand) {
               guideMessage = "🎉 Parabéns pela parceria iniciada com uma criadora da nossa plataforma!\n\n" +
@@ -1014,12 +1016,12 @@ export default function ChatPage({ setComponent, campaignId, creatorId }: ChatPa
                 "🚫 Caso a campanha seja cancelada, o produto deverá ser devolvido, e a criadora poderá ser punida.\n\n" +
                 "Estamos aqui para garantir a melhor experiência para criadoras e marcas. Boa campanha! 💼💡";
             }
-            
+
             const quoteMessage = "💼 Detalhes da Campanha:\n\n" +
               "Status: 🟢 Conectado\n\n" +
               "Você está agora conectado e pode começar a conversar. Use o chat para todas as comunicações e siga as diretrizes da plataforma para uma parceria de sucesso.";
-            
-            
+
+
             const guideMsg: Message = {
               id: Date.now() + Math.floor(Math.random() * 1000),
               message: guideMessage,
@@ -1031,8 +1033,8 @@ export default function ChatPage({ setComponent, campaignId, creatorId }: ChatPa
               is_read: false,
               created_at: new Date().toISOString(),
             };
-            
-            
+
+
             const quoteMsg: Message = {
               id: Date.now() + Math.floor(Math.random() * 1000) + 1,
               message: quoteMessage,
@@ -1044,8 +1046,8 @@ export default function ChatPage({ setComponent, campaignId, creatorId }: ChatPa
               is_read: false,
               created_at: new Date().toISOString(),
             };
-            
-            
+
+
             finalMessages = [guideMsg, quoteMsg, ...deduplicatedMessages];
           }
         }
@@ -1067,7 +1069,7 @@ export default function ChatPage({ setComponent, campaignId, creatorId }: ChatPa
         } else {
           setHasMoreMessages(false);
         }
-        
+
         const unreadMessages = deduplicatedMessages.filter(
           (msg) => !msg.is_sender && !msg.is_read
         );
@@ -1080,7 +1082,7 @@ export default function ChatPage({ setComponent, campaignId, creatorId }: ChatPa
             );
           } catch (error) {
             console.warn('Failed to mark messages as read:', error);
-            
+
           }
         }
       }
@@ -1097,7 +1099,7 @@ export default function ChatPage({ setComponent, campaignId, creatorId }: ChatPa
     }
   }, [joinRoom, markMessagesAsRead, toast, user]);
 
-  
+
   const loadContracts = useCallback(async (roomId: string): Promise<void> => {
     if (!isMountedRef.current) return;
 
@@ -1107,7 +1109,7 @@ export default function ChatPage({ setComponent, campaignId, creatorId }: ChatPa
       const contractsData = response.data;
 
       if (isMountedRef.current) {
-        
+
         const contractsWithReviewStatus = await Promise.all(
           contractsData.map(async (contract: any) => {
             try {
@@ -1118,7 +1120,7 @@ export default function ChatPage({ setComponent, campaignId, creatorId }: ChatPa
                 ...reviewStatusResponse.data,
               };
             } catch (error) {
-              
+
               return contract;
             }
           })
@@ -1139,7 +1141,7 @@ export default function ChatPage({ setComponent, campaignId, creatorId }: ChatPa
     }
   }, [hiringApi, toast]);
 
-  
+
   const loadOffers = useCallback(async (roomId: string): Promise<void> => {
     if (!isMountedRef.current) return;
 
@@ -1285,34 +1287,34 @@ export default function ChatPage({ setComponent, campaignId, creatorId }: ChatPa
     el.style.height = "auto";
     el.style.height = `${Math.min(el.scrollHeight, 200)}px`;
 
-    
+
     if (selectedRoom) {
-      
+
       if (typingTimeoutRef.current) {
         clearTimeout(typingTimeoutRef.current);
       }
 
-      
+
       if (!isCurrentUserTyping) {
         setIsCurrentUserTyping(true);
         startTyping(selectedRoom.room_id);
       }
 
-      
+
       typingTimeoutRef.current = setTimeout(() => {
         if (isMountedRef.current) {
           stopTyping(selectedRoom.room_id);
           setIsCurrentUserTyping(false);
         }
-      }, 1000); 
+      }, 1000);
     }
   };
 
-  
+
   const handleKeyUp = () => {
     if (!isMountedRef.current || !selectedRoom) return;
 
-    
+
     if (typingTimeoutRef.current) {
       clearTimeout(typingTimeoutRef.current);
     }
@@ -1322,14 +1324,14 @@ export default function ChatPage({ setComponent, campaignId, creatorId }: ChatPa
         stopTyping(selectedRoom.room_id);
         setIsCurrentUserTyping(false);
       }
-    }, 500); 
+    }, 500);
   };
 
-  
+
   const handleInputBlur = () => {
     if (!isMountedRef.current || !selectedRoom) return;
 
-    
+
     if (typingTimeoutRef.current) {
       clearTimeout(typingTimeoutRef.current);
       typingTimeoutRef.current = null;
@@ -1346,8 +1348,8 @@ export default function ChatPage({ setComponent, campaignId, creatorId }: ChatPa
 
     const file = e.target.files?.[0];
     if (file) {
-      
-      const maxSize = 10 * 1024 * 1024; 
+
+      const maxSize = 10 * 1024 * 1024;
       if (file.size > maxSize) {
         toast({
           title: "Arquivo muito grande",
@@ -1357,7 +1359,7 @@ export default function ChatPage({ setComponent, campaignId, creatorId }: ChatPa
         return;
       }
 
-      
+
       const allowedTypes = [
         'image/jpeg', 'image/png', 'image/jpg', 'image/gif', 'image/webp',
         'application/pdf',
@@ -1370,7 +1372,7 @@ export default function ChatPage({ setComponent, campaignId, creatorId }: ChatPa
         'video/mp4', 'video/avi', 'video/quicktime', 'video/x-msvideo',
         'text/javascript', 'text/typescript', 'text/html', 'text/css', 'application/json'
       ];
-      
+
       if (!allowedTypes.includes(file.type)) {
         toast({
           title: "Tipo de arquivo não suportado",
@@ -1382,7 +1384,7 @@ export default function ChatPage({ setComponent, campaignId, creatorId }: ChatPa
 
       setSelectedFile(file);
 
-      
+
       if (file.type.startsWith("image/")) {
         const reader = new FileReader();
         reader.onload = (e) => {
@@ -1395,7 +1397,7 @@ export default function ChatPage({ setComponent, campaignId, creatorId }: ChatPa
     }
   };
 
-  
+
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
     setDragActive(true);
@@ -1409,32 +1411,32 @@ export default function ChatPage({ setComponent, campaignId, creatorId }: ChatPa
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     setDragActive(false);
-    
+
     const files = e.dataTransfer.files;
     if (files.length > 0) {
       const file = files[0];
-      
+
       const syntheticEvent = { target: { files: [file] } } as unknown as React.ChangeEvent<HTMLInputElement>;
       handleFileSelect(syntheticEvent);
     }
   };
 
   const handleBackNavigation = () => {
-    
+
     if (typingTimeoutRef.current) {
       clearTimeout(typingTimeoutRef.current);
       typingTimeoutRef.current = null;
     }
 
-    
+
     setSelectedFile(null);
     setFilePreview(null);
 
-    
+
     setComponent?.("Minhas campanhas");
   };
 
-  
+
   const formatFileSize = (bytes: number): string => {
     if (bytes === 0) return "0 Bytes";
 
@@ -1445,12 +1447,12 @@ export default function ChatPage({ setComponent, campaignId, creatorId }: ChatPa
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
   };
 
-  
+
   const getFileExtension = (filename: string): string => {
     return filename.split(".").pop()?.toLowerCase() || "";
   };
 
-  
+
   const getMimeType = (filename: string): string => {
     const extension = getFileExtension(filename);
     const mimeTypes: { [key: string]: string } = {
@@ -1480,7 +1482,7 @@ export default function ChatPage({ setComponent, campaignId, creatorId }: ChatPa
         room.campaign_title.toLowerCase().includes(searchQuery.toLowerCase())
     )
     .sort((a, b) => {
-      
+
       const aTime = a.last_message_at ? new Date(a.last_message_at).getTime() : 0;
       const bTime = b.last_message_at ? new Date(b.last_message_at).getTime() : 0;
       return bTime - aTime;
@@ -1497,7 +1499,7 @@ export default function ChatPage({ setComponent, campaignId, creatorId }: ChatPa
     }
   };
 
-  
+
   const activeContract = contracts.find(
     (contract) => contract.status === "active"
   );
@@ -1506,36 +1508,36 @@ export default function ChatPage({ setComponent, campaignId, creatorId }: ChatPa
 
 
 
-  
-  
+
+
   const canSendOffer =
     user?.role === "brand" &&
     selectedRoom &&
     !activeContract &&
     !contracts.some(
       (contract) =>
-        contract.status === "active" 
+        contract.status === "active"
     ) &&
-    !offers.some((offer) => offer.status === "accepted" || offer.status === "pending"); 
+    !offers.some((offer) => offer.status === "accepted" || offer.status === "pending");
 
-  
+
   const hasCompletedContract = contracts.some(
-    (contract) => 
-      contract.status === "completed" && 
-      (contract.workflow_status === "payment_available" || 
-       contract.workflow_status === "payment_withdrawn" ||
-       contract.workflow_status === undefined) 
+    (contract) =>
+      contract.status === "completed" &&
+      (contract.workflow_status === "payment_available" ||
+        contract.workflow_status === "payment_withdrawn" ||
+        contract.workflow_status === undefined)
   );
 
 
 
-  
+
   const canReview = contracts.some(
     (contract) =>
       contract.status === "completed" && contract.can_review === true
   );
 
-  
+
   const handleOfferCreated = () => {
     setShowOfferModal(false);
     loadChatRooms();
@@ -1547,19 +1549,19 @@ export default function ChatPage({ setComponent, campaignId, creatorId }: ChatPa
     await loadMessages(selectedRoom.room_id, nextPage, true);
   };
 
-  
+
   const handleOfferCancel = () => {
     setShowOfferModal(false);
   };
 
-  
+
   const handleExistingOffer = (offerId: number) => {
     setExistingOfferId(offerId);
     setShowExistingOfferModal(true);
     setShowOfferModal(false);
   };
 
-  
+
   const handleCancelExistingOffer = async () => {
     if (!existingOfferId) return;
 
@@ -1573,7 +1575,7 @@ export default function ChatPage({ setComponent, campaignId, creatorId }: ChatPa
         description: "Oferta existente cancelada com sucesso!",
       });
 
-      setShowOfferModal(true); 
+      setShowOfferModal(true);
     } catch (error: any) {
       console.error("Error cancelling existing offer:", error);
 
@@ -1586,10 +1588,10 @@ export default function ChatPage({ setComponent, campaignId, creatorId }: ChatPa
     }
   };
 
-  
+
   const handleAcceptOfferById = useCallback(async (offerId: number) => {
-    
-    
+
+
     if (!offerId || offerId <= 0 || isNaN(offerId)) {
       console.error('Invalid offerId:', offerId);
       toast({
@@ -1614,12 +1616,12 @@ export default function ChatPage({ setComponent, campaignId, creatorId }: ChatPa
           description: "Oferta aceita com sucesso!",
         });
 
-        
+
         if (selectedRoom && response.data?.offer && response.data?.contract && user) {
-          
-          
+
+
           if (isConnected) {
-            
+
             setTimeout(() => {
               sendOfferAcceptanceMessage(
                 selectedRoom.room_id,
@@ -1631,9 +1633,9 @@ export default function ChatPage({ setComponent, campaignId, creatorId }: ChatPa
               );
             }, 100);
           }
-        } 
+        }
 
-        
+
         if (selectedRoom) {
           await Promise.all([
             loadMessages(selectedRoom.room_id),
@@ -1645,21 +1647,21 @@ export default function ChatPage({ setComponent, campaignId, creatorId }: ChatPa
         throw new Error(response.message || "Erro ao aceitar oferta");
       }
 
-      
+
     } catch (error: any) {
       console.error("Error accepting offer:", error);
-      
-      const errorMessage = error.response?.data?.message || 
-                          error.message || 
-                          "Erro ao aceitar oferta";
-      
+
+      const errorMessage = error.response?.data?.message ||
+        error.message ||
+        "Erro ao aceitar oferta";
+
       toast({
         title: "Erro",
         description: errorMessage,
         variant: "destructive",
       });
 
-      
+
       if (selectedRoom) {
         await Promise.all([
           loadMessages(selectedRoom.room_id),
@@ -1671,7 +1673,7 @@ export default function ChatPage({ setComponent, campaignId, creatorId }: ChatPa
   }, [selectedRoom, offers, user?.role, toast, hiringApi, loadMessages, loadOffers, loadContracts, sendOfferAcceptanceMessage, user]);
 
   const handleRejectOffer = useCallback(async (offerId: number) => {
-    
+
     if (!offerId || offerId === undefined || offerId === null || offerId <= 0 || isNaN(offerId)) {
       console.error('Invalid offerId:', offerId);
       toast({
@@ -1683,7 +1685,7 @@ export default function ChatPage({ setComponent, campaignId, creatorId }: ChatPa
     }
 
     try {
-      
+
       if (!offerId || offerId <= 0 || isNaN(offerId)) {
         console.error('Final validation failed for offer ID:', offerId);
         throw new Error(`Invalid offer ID: ${offerId}`);
@@ -1702,7 +1704,7 @@ export default function ChatPage({ setComponent, campaignId, creatorId }: ChatPa
         description: "Oferta rejeitada com sucesso!",
       });
 
-      
+
     } catch (error: any) {
       console.error("Error rejecting offer:", error);
       toast({
@@ -1711,7 +1713,7 @@ export default function ChatPage({ setComponent, campaignId, creatorId }: ChatPa
         variant: "destructive",
       });
 
-      
+
       if (selectedRoom) {
         loadMessages(selectedRoom.room_id);
         loadOffers(selectedRoom.room_id);
@@ -1721,7 +1723,7 @@ export default function ChatPage({ setComponent, campaignId, creatorId }: ChatPa
   }, [selectedRoom, offers, user?.role, toast, hiringApi, loadMessages, loadOffers, loadContracts]);
 
   const handleCancelOffer = useCallback(async (offerId: number) => {
-    
+
     if (!offerId || offerId === undefined || offerId === null || offerId <= 0 || isNaN(offerId)) {
       console.error('Invalid offerId:', offerId);
       toast({
@@ -1733,7 +1735,7 @@ export default function ChatPage({ setComponent, campaignId, creatorId }: ChatPa
     }
 
     try {
-      
+
       if (!offerId || offerId <= 0 || isNaN(offerId)) {
         console.error('Final validation failed for offer ID:', offerId);
         throw new Error(`Invalid offer ID: ${offerId}`);
@@ -1744,7 +1746,7 @@ export default function ChatPage({ setComponent, campaignId, creatorId }: ChatPa
         title: "Sucesso",
         description: "Oferta cancelada com sucesso!",
       });
-      
+
     } catch (error: any) {
       console.error("Error cancelling offer:", error);
       toast({
@@ -1755,7 +1757,7 @@ export default function ChatPage({ setComponent, campaignId, creatorId }: ChatPa
     }
   }, [toast, hiringApi]);
 
-  
+
   const handleEndContract = (contractId: number) => {
     const contractToEnd = contracts.find((c) => c.id === contractId);
     if (contractToEnd) {
@@ -1764,7 +1766,7 @@ export default function ChatPage({ setComponent, campaignId, creatorId }: ChatPa
     }
   };
 
-  
+
   const handleCampaignFinalized = () => {
     if (contractToFinalize) {
       setContractToReview(contractToFinalize);
@@ -1773,7 +1775,7 @@ export default function ChatPage({ setComponent, campaignId, creatorId }: ChatPa
     }
   };
 
-  
+
   const handleTerminateContract = (contractId: number) => {
     const contractToTerminate = contracts.find((c) => c.id === contractId);
     if (contractToTerminate) {
@@ -1782,7 +1784,7 @@ export default function ChatPage({ setComponent, campaignId, creatorId }: ChatPa
     }
   };
 
-  
+
   const handleTerminationConfirmed = async () => {
     if (!contractToTerminate) return;
 
@@ -1800,8 +1802,8 @@ export default function ChatPage({ setComponent, campaignId, creatorId }: ChatPa
         setShowTerminateModal(false);
         setContractToTerminate(null);
         setTerminationMessage("");
-        
-        
+
+
         if (selectedRoom) {
           loadMessages(selectedRoom.room_id);
           loadContracts(selectedRoom.room_id);
@@ -1823,12 +1825,12 @@ export default function ChatPage({ setComponent, campaignId, creatorId }: ChatPa
 
 
 
-  
+
   const handleReviewSubmitted = () => {
     setShowReviewModal(false);
     setContractToReview(null);
 
-    
+
     if (contractToReview) {
       setContracts((prev) =>
         prev.map((contract) =>
@@ -1837,7 +1839,7 @@ export default function ChatPage({ setComponent, campaignId, creatorId }: ChatPa
               ...contract,
               workflow_status: 'payment_available',
               review: {
-                id: Date.now(), 
+                id: Date.now(),
                 rating: 5,
                 comment: "Review submitted",
                 created_at: new Date().toISOString(),
@@ -1854,7 +1856,7 @@ export default function ChatPage({ setComponent, campaignId, creatorId }: ChatPa
     setContractToReview(null);
   };
 
-  
+
   const createDownloadLink = (
     url: string,
     fileName: string,
@@ -1868,18 +1870,18 @@ export default function ChatPage({ setComponent, campaignId, creatorId }: ChatPa
     link.setAttribute("type", mimeType);
     link.setAttribute("target", "_blank");
     link.setAttribute("rel", "noopener noreferrer");
-    
+
     link.setAttribute("data-downloadurl", `${mimeType}:${fileName}:${url}`);
     return link;
   };
 
-  
+
   const triggerDownload = (link: HTMLAnchorElement, blobUrl?: string): void => {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
 
-    
+
     if (blobUrl) {
       setTimeout(() => {
         window.URL.revokeObjectURL(blobUrl);
@@ -1887,7 +1889,7 @@ export default function ChatPage({ setComponent, campaignId, creatorId }: ChatPa
     }
   };
 
-  
+
   const downloadImageToLocal = async (
     imageUrl: string,
     fileName: string
@@ -2020,15 +2022,15 @@ export default function ChatPage({ setComponent, campaignId, creatorId }: ChatPa
     throw new Error("Popup blocked by browser");
   };
 
-  
+
   const downloadFileToLocal = async (message: Message): Promise<void> => {
     const fileName = message.file_name || "download";
     const fileSize = message.file_size ? parseInt(message.file_size) : 0;
 
-    
+
     const downloadUrl = message.file_url.replace("/storage/", "/api/download/");
 
-    
+
     try {
       const response = await fetch(downloadUrl, {
         method: "GET",
@@ -2079,7 +2081,7 @@ export default function ChatPage({ setComponent, campaignId, creatorId }: ChatPa
   };
 
   const renderMessageContent = (message: Message) => {
-    
+
     if (message.message_type === "file") {
       return (
         <div className="space-y-3">
@@ -2122,9 +2124,9 @@ export default function ChatPage({ setComponent, campaignId, creatorId }: ChatPa
             ? formatFileSize(parseInt(message.file_size))
             : undefined,
         });
-    };
+      };
 
-    return (
+      return (
         <div className="space-y-3">
           {message.file_url && (
             <div className="relative group">
@@ -2171,8 +2173,8 @@ export default function ChatPage({ setComponent, campaignId, creatorId }: ChatPa
         </div>
       );
     } else if (message.message_type === "offer" && message.offer_data) {
-      
-      
+
+
       if (isLoadingOffers || !offersReady) {
         return (
           <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-xl p-3">
@@ -2185,45 +2187,45 @@ export default function ChatPage({ setComponent, campaignId, creatorId }: ChatPa
           </div>
         );
       }
-      
-      
+
+
       let actualOfferId: number | null = null;
-      
-      
+
+
       if (message.offer_data.offer_id && typeof message.offer_data.offer_id === 'number' && message.offer_data.offer_id > 0) {
         actualOfferId = message.offer_data.offer_id;
       }
-      
-      
+
+
       if (!actualOfferId && offers.length > 0) {
-        
-        
+
+
         const matchingOffer = offers.find(offer => {
-          
-          const budgetMatch = offer.budget === message.offer_data.budget || 
-                             offer.budget === `R$ ${message.offer_data.budget},00` ||
-                             offer.budget === message.offer_data.formatted_budget;
-          
-          
+
+          const budgetMatch = offer.budget === message.offer_data.budget ||
+            offer.budget === `R$ ${message.offer_data.budget},00` ||
+            offer.budget === message.offer_data.formatted_budget;
+
+
           const daysMatch = offer.estimated_days === message.offer_data.estimated_days;
-          
-          
+
+
           const titleMatch = !message.offer_data.title || offer.title === message.offer_data.title;
-          
-          
+
+
           const statusMatch = !message.offer_data.status || offer.status === message.offer_data.status;
-          
+
           const isMatch = budgetMatch && daysMatch && titleMatch && statusMatch;
-          
+
           return isMatch;
         });
-        
+
         if (matchingOffer) {
           actualOfferId = matchingOffer.id;
-        } 
+        }
       }
-      
-      
+
+
       if (!actualOfferId || actualOfferId <= 0) {
         console.error('Could not determine valid offer ID for message:', {
           message_id: message.id,
@@ -2231,12 +2233,12 @@ export default function ChatPage({ setComponent, campaignId, creatorId }: ChatPa
           actualOfferId,
           offers_count: offers.length
         });
-        
-        
+
+
         if (selectedRoom && offers.length === 0) {
           loadOffers(selectedRoom.room_id);
         }
-        
+
         return (
           <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700 rounded-xl p-3">
             <p className="text-sm text-red-700 dark:text-red-300">
@@ -2256,9 +2258,9 @@ export default function ChatPage({ setComponent, campaignId, creatorId }: ChatPa
         );
       }
 
-      
+
       const chatOffer: ChatOffer = {
-        id: actualOfferId!, 
+        id: actualOfferId!,
         title: message.offer_data.title || "Oferta de Projeto",
         description:
           message.offer_data.description || "Oferta enviada via chat",
@@ -2276,8 +2278,8 @@ export default function ChatPage({ setComponent, campaignId, creatorId }: ChatPa
           name: message.offer_data.sender?.name || "Usuário",
           avatar_url: message.offer_data.sender?.avatar_url || null,
         },
-        can_be_accepted: false, 
-        can_be_rejected: false, 
+        can_be_accepted: false,
+        can_be_rejected: false,
         can_be_cancelled:
           message.offer_data.status === "pending" && user?.role === "brand",
         contract_id: message.offer_data.contract_id,
@@ -2285,7 +2287,7 @@ export default function ChatPage({ setComponent, campaignId, creatorId }: ChatPa
         can_be_completed: message.offer_data.can_be_completed,
       };
 
-      
+
       if (!chatOffer.id || chatOffer.id <= 0) {
         console.error('ChatOffer created with invalid ID:', chatOffer);
         return (
@@ -2297,7 +2299,7 @@ export default function ChatPage({ setComponent, campaignId, creatorId }: ChatPa
         );
       }
 
-      
+
       if (!chatOffer.id || chatOffer.id <= 0 || isNaN(chatOffer.id)) {
         console.error('ChatOffer created with invalid ID:', chatOffer);
         return (
@@ -2314,44 +2316,44 @@ export default function ChatPage({ setComponent, campaignId, creatorId }: ChatPa
           </div>
         );
       }
-    return (
-          <ChatOfferMessage
-            offer={chatOffer}
-            isSender={message.is_sender}
-            onAccept={handleAcceptOfferById}
-            onReject={handleRejectOffer}
-            onCancel={handleCancelOffer}
-            onEndContract={handleEndContract}
-            onTerminateContract={handleTerminateContract}
-            isCreator={false} 
-          />
-        );
+      return (
+        <ChatOfferMessage
+          offer={chatOffer}
+          isSender={message.is_sender}
+          onAccept={handleAcceptOfferById}
+          onReject={handleRejectOffer}
+          onCancel={handleCancelOffer}
+          onEndContract={handleEndContract}
+          onTerminateContract={handleTerminateContract}
+          isCreator={false}
+        />
+      );
     }
 
-    
+
     if (message.message_type === "contract_completion") {
       return (
         <ContractCompletionMessage
           message={message}
           onReview={async () => {
             try {
-              
+
               if (selectedRoom) {
                 const response = await hiringApi.getContractsForChatRoom(selectedRoom.room_id);
                 const freshContracts = response.data;
-                
-                
-                const contractToReview = freshContracts.find((c: any) => 
-                  c.status === "completed" && 
+
+
+                const contractToReview = freshContracts.find((c: any) =>
+                  c.status === "completed" &&
                   (c.workflow_status === "waiting_review" || c.can_review === true)
                 );
-                
+
                 if (contractToReview) {
                   setContractToReview(contractToReview);
                   setShowReviewModal(true);
                 } else {
                   const fallbackContract = {
-                    id: 34, 
+                    id: 34,
                     title: "Projeto de Campanha",
                     status: "completed",
                     workflow_status: "waiting_review",
@@ -2365,7 +2367,7 @@ export default function ChatPage({ setComponent, campaignId, creatorId }: ChatPa
                       name: "Brand",
                     }
                   };
-                  
+
                   setContractToReview(fallbackContract);
                   setShowReviewModal(true);
                 }
@@ -2379,43 +2381,43 @@ export default function ChatPage({ setComponent, campaignId, creatorId }: ChatPa
               });
             }
           }}
-          isCreator={false} 
+          isCreator={false}
           contractData={message.offer_data}
         />
       );
     }
 
-    
+
     if (message.message_type === "system") {
-      
+
       const isReviewMessage =
         (message.message?.includes("review") ||
-        message.message?.includes("avaliação")) &&
+          message.message?.includes("avaliação")) &&
         !message.message?.includes("finalizou o contrato");
 
-      
-      const isGuideMessage = message.message?.includes("Parabéns") || 
-                           message.message?.includes("parceria iniciada") ||
-                           message.message?.includes("Detalhes da Campanha");
-      
+
+      const isGuideMessage = message.message?.includes("Parabéns") ||
+        message.message?.includes("parceria iniciada") ||
+        message.message?.includes("Detalhes da Campanha");
 
 
-      
+
+
       const isContractCompletionMessage = message.message?.includes("O contrato foi finalizado com sucesso") ||
-                                        message.message?.includes("Vocês podem avaliar um ao outro") ||
-                                        message.message?.includes("Contrato finalizado com sucesso") ||
-                                        message.message?.includes("finalizado com sucesso") ||
-                                        message.message?.includes("aguardando avaliação");
-      
-      
+        message.message?.includes("Vocês podem avaliar um ao outro") ||
+        message.message?.includes("Contrato finalizado com sucesso") ||
+        message.message?.includes("finalizado com sucesso") ||
+        message.message?.includes("aguardando avaliação");
+
+
       const canReviewContract = contracts.some(
         (contract) =>
-          contract.status === "completed" && 
+          contract.status === "completed" &&
           contract.workflow_status === "waiting_review" &&
           contract.can_review === true
       );
 
-      
+
       if (isContractCompletionMessage && canReviewContract) {
         return (
           <div className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 border border-green-200 dark:border-green-700 rounded-2xl p-6 shadow-lg">
@@ -2430,14 +2432,14 @@ export default function ChatPage({ setComponent, campaignId, creatorId }: ChatPa
                 <div className="flex justify-center">
                   <Button
                     onClick={() => {
-                      
+
                       let contractToReview = contracts.find(
                         (c) =>
                           c.status === "completed" &&
                           c.workflow_status === "waiting_review"
                       );
 
-                      
+
                       if (!contractToReview) {
                         contractToReview = contracts.find(
                           (c) => c.status === "completed"
@@ -2445,7 +2447,7 @@ export default function ChatPage({ setComponent, campaignId, creatorId }: ChatPa
                       }
 
                       if (contractToReview) {
-                        
+
                         if (contractToReview.can_review === false) {
                           toast({
                             title: "Avaliação já realizada",
@@ -2478,7 +2480,7 @@ export default function ChatPage({ setComponent, campaignId, creatorId }: ChatPa
         );
       }
 
-      
+
       if (isContractCompletionMessage && hasCompletedContract && user?.role === "brand") {
         return (
           <div className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 border border-green-200 dark:border-green-700 rounded-2xl p-6 shadow-lg">
@@ -2550,27 +2552,27 @@ export default function ChatPage({ setComponent, campaignId, creatorId }: ChatPa
                   <Button
                     size="sm"
                     onClick={() => {
-                      
+
                       let contractToReview = contracts.find(
                         (c) =>
                           c.status === "completed" &&
                           c.workflow_status === "waiting_review"
                       );
 
-                      
+
                       if (!contractToReview) {
                         contractToReview = contracts.find(
                           (c) => c.status === "completed"
                         );
                       }
 
-                      
+
                       if (!contractToReview && contracts.length > 0) {
                         contractToReview = contracts[0];
                       }
 
                       if (contractToReview) {
-                        
+
                         if (contractToReview.can_review === false) {
                           toast({
                             title: "Avaliação já realizada",
@@ -2605,14 +2607,14 @@ export default function ChatPage({ setComponent, campaignId, creatorId }: ChatPa
       );
     }
 
-  return (
+    return (
       <p className={message.is_sender ? "text-sm text-white" : "text-sm text-slate-900 dark:text-white"}>
         {message.message}
       </p>
     );
   };
 
-  
+
   const getFileIcon = (fileName: string, messageType: string) => {
     const extension = getFileExtension(fileName);
 
@@ -2651,7 +2653,7 @@ export default function ChatPage({ setComponent, campaignId, creatorId }: ChatPa
     }
   };
 
-  
+
   const getFileColor = (fileName: string, messageType: string) => {
     const extension = getFileExtension(fileName);
 
@@ -2691,817 +2693,732 @@ export default function ChatPage({ setComponent, campaignId, creatorId }: ChatPa
 
   return (
     <div className="flex h-full bg-background overflow-hidden">
-  {}
+      { }
 
-  <div className="flex flex-1 overflow-hidden">
-    {}
-    <div
-      data-sidebar
-      className={cn(
-        
-        "flex flex-col w-full max-w-[100vw] md:max-w-sm border-r bg-background transition-all duration-300 ease-in-out",
-        "md:relative md:translate-x-0 md:shadow-none",
-        sidebarOpen
-          ? "fixed inset-0 z-40 translate-x-0 shadow-2xl"
-          : "fixed inset-0 z-40 -translate-x-full md:relative md:translate-x-0"
-      )}
-    >
-      {}
-      <div className="flex items-center justify-between gap-2 px-4 sm:px-6 py-4 border-b bg-background">
-        <div className="flex flex-col">
-          <span className="font-bold text-xl tracking-tight text-slate-900 dark:text-white">
-            Conversas
-          </span>
-          <div className="flex items-center gap-2 mt-1">
-            <span className="text-xs text-slate-500 dark:text-slate-400">
-              {chatRooms.length} conversas
-            </span>
-            {connectionError && (
-              <div className="flex items-center gap-1 text-red-500">
-                <WifiOff className="w-3 h-3" />
-                <span className="text-xs">Offline</span>
-              </div>
-            )}
-          </div>
-        </div>
-        {connectionError && (
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={reconnect}
-            className="p-2"
-          >
-            <RefreshCw className="w-4 h-4" />
-          </Button>
-        )}
-        <button
-          className="md:hidden p-2.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-all duration-200"
-          onClick={() => setSidebarOpen(false)}
-          aria-label="Close conversations"
+      <div className="flex flex-1 overflow-hidden">
+        { }
+        <div
+          data-sidebar
+          className={cn(
+
+            "flex flex-col w-full max-w-[100vw] md:max-w-sm border-r bg-background transition-all duration-300 ease-in-out",
+            "md:relative md:translate-x-0 md:shadow-none",
+            sidebarOpen
+              ? "fixed inset-0 z-40 translate-x-0 shadow-2xl"
+              : "fixed inset-0 z-40 -translate-x-full md:relative md:translate-x-0"
+          )}
         >
-          <X className="w-5 h-5" />
-        </button>
-      </div>
-
-      {}
-      <div className="p-3 sm:p-4 pb-3">
-        <div className="relative">
-          <Input
-            placeholder="Buscar conversas..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10 bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700 focus:bg-white dark:focus:bg-slate-800 focus:border-pink-300 dark:focus:border-pink-600 transition-all duration-200"
-          />
-          <SearchIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-400" />
-        </div>
-      </div>
-
-      {}
-      <div className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-pink-500 scrollbar-track-transparent hover:scrollbar-thumb-pink-600">
-        {}
-        <div className="p-2 w-full md:w-[383px] md:mx-0 mx-auto">
-          {isLoadingRooms ? (
-            <div className="space-y-3 py-2">
-              {[1, 2, 3, 4].map((item) => (
-                <div
-                  key={item}
-                  className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50 animate-pulse"
-                >
-                  <div className="w-12 h-12 rounded-full bg-slate-200 dark:bg-slate-700 flex-shrink-0" />
-                  <div className="flex-1 space-y-2">
-                    <div className="h-3 w-1/2 rounded bg-slate-200 dark:bg-slate-700" />
-                    <div className="h-2 w-3/4 rounded bg-slate-200 dark:bg-slate-700" />
-                    <div className="h-2 w-2/3 rounded bg-slate-100 dark:bg-slate-800" />
+          { }
+          <div className="flex items-center justify-between gap-2 px-4 sm:px-6 py-4 border-b bg-background">
+            <div className="flex flex-col">
+              <span className="font-bold text-xl tracking-tight text-slate-900 dark:text-white">
+                Conversas
+              </span>
+              <div className="flex items-center gap-2 mt-1">
+                <span className="text-xs text-slate-500 dark:text-slate-400">
+                  {chatRooms.length} conversas
+                </span>
+                {connectionError && (
+                  <div className="flex items-center gap-1 text-red-500">
+                    <WifiOff className="w-3 h-3" />
+                    <span className="text-xs">Offline</span>
                   </div>
-                </div>
-              ))}
-            </div>
-          ) : filteredRooms.length === 0 ? (
-            <div className="text-center py-8 text-slate-500 dark:text-slate-400">
-              <div className="text-4xl mb-2">💬</div>
-              <p className="text-sm">Nenhuma conversa encontrada</p>
-            </div>
-          ) : (
-            filteredRooms.map((room) => (
-              <div
-                key={room.id}
-                onClick={() => {
-                  handleConversationSelect(room);
-                  if (window.innerWidth < 768) setSidebarOpen(false);
-                }}
-                className={cn(
-                  "flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-all duration-200 mb-2",
-                  selectedRoom?.id === room.id
-                    ? "bg-pink-50 dark:bg-pink-900/20 border border-pink-200 dark:border-pink-800"
-                    : "hover:bg-slate-50 dark:hover:bg-slate-800/50"
                 )}
-              >
-                <Avatar className="w-12 h-12">
-                  <AvatarImage
-                    src={`${import.meta.env.VITE_BACKEND_URL ||
-                      "https://nexacreators.com.br"
-                      }${room.other_user.avatar}`}
-                  />
-                  <AvatarFallback className="bg-pink-100 dark:bg-pink-900 text-pink-600 dark:text-pink-400">
-                    {room.other_user.name.charAt(0).toUpperCase()}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between">
-                    <h3 className="font-semibold text-slate-900 dark:text-white truncate">
-                      {room.other_user.name}
-                    </h3>
-                    {room.last_message_at && (
-                      <span className="text-xs text-slate-500 dark:text-slate-400">
-                        {formatMessageTime(room.last_message_at)}
-                      </span>
-                    )}
-                  </div>
-                  <p className="text-sm text-slate-600 dark:text-slate-300 truncate">
-                    {room.campaign_title}
-                  </p>
-                  {room.last_message && (
-                    <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2 leading-relaxed">
-                      {room.last_message.is_sender ? "Você: " : ""}
-                      {room.last_message.message}
-                    </p>
-                  )}
-                </div>
-              </div>
-            ))
-          )}
-        </div>
-      </div>
-    </div>
-
-    {}
-    <div className="flex-1 flex flex-col">
-      {selectedRoom ? (
-        <>
-          {}
-          <div className="flex items-center justify-between p-2 sm:p-3 border-b bg-background">
-            <div className="flex items-center gap-3 min-w-0 flex-1">
-              {}
-              <button
-                className="md:hidden p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-all duration-200 flex-shrink-0"
-                onClick={() => setSidebarOpen(true)}
-                aria-label="Back to conversations"
-              >
-                <svg
-                  width="20"
-                  height="20"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  className="text-slate-700 dark:text-slate-300"
-                >
-                  <path d="m15 18-6-6 6-6"/>
-                </svg>
-              </button>
-
-              <Avatar className="w-10 h-10 flex-shrink-0">
-                <AvatarImage
-                  src={`${import.meta.env.VITE_BACKEND_URL ||
-                    "https://nexacreators.com.br"
-                    }${selectedRoom.other_user.avatar}`}
-                />
-                <AvatarFallback className="bg-pink-100 dark:bg-pink-900 text-pink-600 dark:text-pink-400">
-                  {selectedRoom.other_user.name.charAt(0).toUpperCase()}
-                </AvatarFallback>
-              </Avatar>
-              <div className="min-w-0 flex-1">
-                <h2 className="font-semibold text-slate-900 dark:text-white truncate">
-                  {selectedRoom.other_user.name}
-                </h2>
-                <div className="flex items-center gap-2">
-                  {isOtherUserOnline ? (
-                    <div className="flex items-center gap-1 text-green-500">
-                      <Wifi className="w-4 h-4" />
-                      <span className="text-xs">Online</span>
-                    </div>
-                  ) : (
-                    <div className="flex items-center gap-1 text-red-500">
-                      <WifiOff className="w-4 h-4" />
-                      <span className="text-xs">Offline</span>
-                    </div>
-                  )}
-                </div>
               </div>
             </div>
+            {connectionError && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={reconnect}
+                className="p-2"
+              >
+                <RefreshCw className="w-4 h-4" />
+              </Button>
+            )}
+            <button
+              className="md:hidden p-2.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-all duration-200"
+              onClick={() => setSidebarOpen(false)}
+              aria-label="Close conversations"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
 
-            <div className="flex items-center gap-2">
-              {}
-              {activeContract && (
-                <Button
-                  onClick={() => setShowTimelineSidebar(true)}
-                  variant="outline"
-                  size="sm"
-                  className="flex items-center gap-1 px-3 py-1 text-xs sm:text-sm bg-gradient-to-r from-blue-50 to-indigo-50 hover:from-blue-100 hover:to-indigo-100 border-blue-200 text-blue-700 hover:text-blue-800"
-                >
-                  <Clock className="w-3 h-3" />
-                  <span>Linha do Tempo</span>
-                </Button>
-              )}
-
-              {contracts.some(contract => 
-                contract.status === "completed" && !contract.has_brand_review
-              ) && (
-                <Button
-                  onClick={() => {
-                    const contractToReview = contracts.find(contract => 
-                      contract.status === "completed" && !contract.has_brand_review
-                    );
-                    if (contractToReview) {
-                      setContractToReview(contractToReview);
-                      setShowReviewModal(true);
-                    } else {
-                      toast({
-                        title: "Erro",
-                        description: "Nenhum contrato disponível para avaliação",
-                        variant: "destructive",
-                      });
-                    }
-                  }}
-                  className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white shadow-lg hover:shadow-xl transition-all duration-200"
-                >
-                  <Star className="w-4 h-4 mr-2" />
-                  Avaliar Criador
-                </Button>
-              )}
-
-              {canSendOffer && (
-                <>
-                  {offers.some(offer => offer.status === 'pending') ? (
-                    <div className="flex items-center gap-2">
-                      <Button
-                        onClick={() => {
-                          const pendingOffer = offers.find(offer => offer.status === 'pending');
-                          if (pendingOffer) {
-                            handleExistingOffer(pendingOffer.id);
-                          }
-                        }}
-                        className="bg-orange-600 hover:bg-orange-700 text-white"
-                      >
-                        <AlertCircle className="w-4 h-4 mr-2" />
-                        Oferta Pendente
-                      </Button>
-                      <Button
-                        onClick={() => setShowOfferModal(true)}
-                        variant="outline"
-                        className="border-orange-600 text-orange-600 hover:bg-orange-50"
-                      >
-                        <Briefcase className="w-4 h-4 mr-2" />
-                        Nova Oferta
-                      </Button>
-                    </div>
-                  ) : (
-                    <Button
-                      onClick={() => setShowOfferModal(true)}
-                      className="bg-purple-600 hover:bg-purple-700 text-white"
-                    >
-                      <Briefcase className="w-4 h-4 mr-2" />
-                      Enviar Oferta
-                    </Button>
-                  )}
-                </>
-              )}
-
-              {canReview && (
-                <Button
-                  onClick={() => {
-                    let contractToReview = contracts.find(
-                      (c) =>
-                        c.status === "completed" &&
-                        c.workflow_status === "waiting_review"
-                    );
-
-                    if (!contractToReview) {
-                      contractToReview = contracts.find(
-                        (c) => c.status === "completed"
-                      );
-                    }
-
-                    if (!contractToReview && contracts.length > 0) {
-                      contractToReview = contracts[0];
-                    }
-
-                    if (contractToReview) {
-                      if (contractToReview.can_review === false) {
-                        toast({
-                          title: "Avaliação já realizada",
-                          description: "Você já avaliou este contrato",
-                          variant: "destructive",
-                        });
-                        return;
-                      }
-
-                      setContractToReview(contractToReview);
-                      setShowReviewModal(true);
-                    } else {
-                      toast({
-                        title: "Erro",
-                        description:
-                          "Nenhum contrato encontrado para avaliação",
-                        variant: "destructive",
-                      });
-                    }
-                  }}
-                  className="bg-blue-600 hover:bg-blue-700 text-white shadow-lg hover:shadow-xl transition-all duration-200"
-                >
-                  <Star className="w-4 h-4 mr-2" />⚡ Avaliar Trabalho
-                </Button>
-              )}
-
-              {hasCompletedContract && user?.role === "brand" && selectedRoom && (
-                <Button
-                  onClick={() => setShowOfferModal(true)}
-                  className="bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white shadow-lg hover:shadow-xl transition-all duration-200"
-                >
-                  <Briefcase className="w-4 h-4 mr-2" />
-                  Enviar Nova Oferta
-                </Button>
-              )}
+          { }
+          <div className="p-3 sm:p-4 pb-3">
+            <div className="relative">
+              <Input
+                placeholder="Buscar conversas..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10 bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700 focus:bg-white dark:focus:bg-slate-800 focus:border-pink-300 dark:focus:border-pink-600 transition-all duration-200"
+              />
+              <SearchIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-400" />
             </div>
           </div>
 
-          {}
-          {canReview && (
-            <div className="mx-4 mt-4 p-3 bg-gradient-to-r from-yellow-50 to-orange-50 dark:from-yellow-900/20 dark:to-orange-900/20 border border-yellow-300 dark:border-yellow-600 rounded-lg shadow-sm">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Star className="w-4 h-4 text-yellow-600" />
-                  <span className="text-sm font-medium text-yellow-800 dark:text-yellow-200">
-                    ⚡ Você tem contratos aguardando avaliação!
-                  </span>
-                </div>
-                <Button
-                  onClick={() => {
-                    const contractToReview = contracts.find(
-                      (c) =>
-                        c.status === "completed" &&
-                        c.workflow_status === "waiting_review"
-                    );
-                    if (contractToReview) {
-                      setContractToReview(contractToReview);
-                      setShowReviewModal(true);
-                    }
-                  }}
-                  size="sm"
-                  className="bg-yellow-600 hover:bg-yellow-700 text-white"
-                >
-                  Avaliar Agora
-                </Button>
-              </div>
-            </div>
-          )}
-
-          {}
-          {user?.role === "brand" && selectedRoom && offers.some(offer => offer.status === 'pending') && (
-            <div className="mx-4 mt-4 p-3 bg-gradient-to-r from-orange-50 to-red-50 dark:from-orange-900/20 dark:to-red-900/20 border border-orange-300 dark:border-orange-600 rounded-lg shadow-sm">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <AlertCircle className="w-4 h-4 text-orange-600" />
-                  <span className="text-sm font-medium text-orange-800 dark:text-orange-200">
-                    📋 Você tem uma oferta pendente para este criador
-                  </span>
-                </div>
-                <Button
-                  onClick={() => {
-                    const pendingOffer = offers.find(offer => offer.status === 'pending');
-                    if (pendingOffer) {
-                      handleExistingOffer(pendingOffer.id);
-                    }
-                  }}
-                  size="sm"
-                  className="bg-orange-600 hover:bg-orange-700 text-white"
-                >
-                  Ver Oferta
-                </Button>
-              </div>
-            </div>
-          )}
-
-          {}
-          {hasCompletedContract && user?.role === "brand" && selectedRoom && !activeContract && (
-            <div className="mx-4 mt-4 p-3 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 border border-green-300 dark:border-green-600 rounded-lg shadow-sm">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Sparkles className="w-4 h-4 text-green-600" />
-                  <span className="text-sm font-medium text-green-800 dark:text-green-200">
-                    🎉 Contrato finalizado! Você pode enviar uma nova oferta para este criador
-                  </span>
-                </div>
-                <Button
-                  onClick={() => setShowOfferModal(true)}
-                  size="sm"
-                  className="bg-green-600 hover:bg-green-700 text-white"
-                >
-                  <Briefcase className="w-4 h-4 mr-2" />
-                  Enviar Nova Oferta
-                </Button>
-              </div>
-            </div>
-          )}
-
-          {}
-          <div className="flex-1 overflow-y-auto overflow-x-hidden p-3 sm:p-4 scrollbar-hide">
-            <div className="space-y-4">
-              {hasMoreMessages && (
-                <div className="flex justify-center">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleLoadMoreMessages}
-                    disabled={isLoadingMessages}
-                    className="text-xs px-3 py-1"
-                  >
-                    {isLoadingMessages ? "Carregando mensagens..." : "Carregar mensagens anteriores"}
-                  </Button>
-                </div>
-              )}
-
-              {isLoadingMessages && messages.length === 0 ? (
-                <div className="space-y-3">
-                  {[1, 2, 3].map((item) => (
+          { }
+          <div className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-pink-500 scrollbar-track-transparent hover:scrollbar-thumb-pink-600">
+            { }
+            <div className="p-2 w-full md:w-[383px] md:mx-0 mx-auto">
+              {isLoadingRooms ? (
+                <div className="space-y-3 py-2">
+                  {[1, 2, 3, 4].map((item) => (
                     <div
                       key={item}
-                      className="flex gap-3"
+                      className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50 animate-pulse"
                     >
-                      <div className="w-8 h-8 rounded-full bg-slate-200 dark:bg-slate-700" />
+                      <div className="w-12 h-12 rounded-full bg-slate-200 dark:bg-slate-700 flex-shrink-0" />
                       <div className="flex-1 space-y-2">
-                        <div className="h-3 w-2/3 rounded bg-slate-200 dark:bg-slate-700" />
-                        <div className="h-3 w-1/2 rounded bg-slate-100 dark:bg-slate-800" />
+                        <div className="h-3 w-1/2 rounded bg-slate-200 dark:bg-slate-700" />
+                        <div className="h-2 w-3/4 rounded bg-slate-200 dark:bg-slate-700" />
+                        <div className="h-2 w-2/3 rounded bg-slate-100 dark:bg-slate-800" />
                       </div>
                     </div>
                   ))}
                 </div>
+              ) : filteredRooms.length === 0 ? (
+                <div className="text-center py-8 text-slate-500 dark:text-slate-400">
+                  <div className="text-4xl mb-2">💬</div>
+                  <p className="text-sm">Nenhuma conversa encontrada</p>
+                </div>
               ) : (
-                <>
-              {messages.map((message) => {
-                return (
+                filteredRooms.map((room) => (
                   <div
-                    key={message.id}
+                    key={room.id}
+                    onClick={() => {
+                      handleConversationSelect(room);
+                      if (window.innerWidth < 768) setSidebarOpen(false);
+                    }}
                     className={cn(
-                      "flex gap-3",
-                      message.message_type === "system"
-                        ? "justify-center"
-                        : message.is_sender
-                          ? "justify-end"
-                          : "justify-start"
+                      "flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-all duration-200 mb-2",
+                      selectedRoom?.id === room.id
+                        ? "bg-pink-50 dark:bg-pink-900/20 border border-pink-200 dark:border-pink-800"
+                        : "hover:bg-slate-50 dark:hover:bg-slate-800/50"
                     )}
                   >
-                    {!message.is_sender &&
-                      message.message_type !== "system" && (
-                        <Avatar className="w-8 h-8">
-                          <AvatarImage
-                            src={`${import.meta.env.VITE_BACKEND_URL ||
-                              "https://nexacreators.com.br"
-                              }${selectedRoom.other_user.avatar}`}
-                          />
-                          <AvatarFallback className="bg-pink-100 dark:bg-pink-900 text-pink-600 dark:text-pink-400 text-xs">
-                            {selectedRoom.other_user.name
-                              .charAt(0)
-                              .toUpperCase()}
-                          </AvatarFallback>
-                        </Avatar>
-                      )}
-                    <div
-                        className={cn(
-                          message.message_type === "system"
-                            ? "max-w-[92vw] sm:max-w-2xl px-4 py-2 rounded-xl"
-                            : "max-w-[85vw] sm:max-w-sm lg:max-w-lg xl:max-w-xl px-4 py-2 rounded-2xl",
-                          message.message_type === "system"
-                            ? ""
-                            : message.is_sender
-                            ? "bg-pink-500 text-white"
-                            : "bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white",
-                          "break-words"
-                        )}
-                    >
-                      {renderMessageContent(message)}
-                      {message.message_type !== "system" && (
-                        <div className="flex items-center justify-between mt-1">
-                          <span className="text-xs opacity-70">
-                            {formatMessageTime(message.created_at)}
+                    <Avatar className="w-12 h-12">
+                      <AvatarImage
+                        src={`${import.meta.env.VITE_BACKEND_URL ||
+                          "https://nexacreators.com.br"
+                          }${room.other_user.avatar}`}
+                      />
+                      <AvatarFallback className="bg-pink-100 dark:bg-pink-900 text-pink-600 dark:text-pink-400">
+                        {room.other_user.name.charAt(0).toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between">
+                        <h3 className="font-semibold text-slate-900 dark:text-white truncate">
+                          {room.other_user.name}
+                        </h3>
+                        {room.last_message_at && (
+                          <span className="text-xs text-slate-500 dark:text-slate-400">
+                            {formatMessageTime(room.last_message_at)}
                           </span>
-                          {message.is_sender && message.id === lastSentMessageId && (
-                            <div className="flex items-center gap-1">
-                              {message.is_read ? (
-                                <div className="flex items-center gap-0.5 text-sky-500">
-                                  <Check className="w-3 h-3" />
-                                  <Check className="w-3 h-3 -ml-1" />
-                                </div>
-                              ) : (
-                                <div className="flex items-center gap-0.5 opacity-70">
-                                  <Check className="w-3 h-3" />
-                                </div>
-                              )}
-                            </div>
-                          )}
-                        </div>
+                        )}
+                      </div>
+                      <p className="text-sm text-slate-600 dark:text-slate-300 truncate">
+                        {room.campaign_title}
+                      </p>
+                      {room.last_message && (
+                        <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2 leading-relaxed">
+                          {room.last_message.is_sender ? "Você: " : ""}
+                          {room.last_message.message}
+                        </p>
                       )}
                     </div>
                   </div>
-                );
-              })}
-              <div ref={messagesEndRef} />
-              </>
+                ))
               )}
             </div>
           </div>
+        </div>
 
-          {}
-          {typingUsers.size > 0 && (
-            <div className="px-4 pb-10 flex items-center gap-2 text-xs text-slate-600 dark:text-slate-300">
-              <div className="flex space-x-1">
-                <div
-                  className="w-2 h-2 bg-pink-500 rounded-full animate-bounce"
-                  style={{ animationDelay: "0ms" }}
-                ></div>
-                <div
-                  className="w-2 h-2 bg-pink-500 rounded-full animate-bounce"
-                  style={{ animationDelay: "150ms" }}
-                ></div>
-                <div
-                  className="w-2 h-2 bg-pink-500 rounded-full animate-bounce"
-                  style={{ animationDelay: "300ms" }}
-                ></div>
-              </div>
-              <span>
-                {Array.from(typingUsers).length === 1
-                  ? `${Array.from(typingUsers)[0]} está digitandoo...`
-                  : `${Array.from(typingUsers).join(", ")} estão digitando...`}
-              </span>
-            </div>
-          )}
-
-          <form
-            className={`flex items-end gap-3 px-3 sm:px-4 py-3 border-t bg-background transition-colors ${
-              dragActive ? 'bg-pink-50 dark:bg-pink-900/10' : ''
-            }`}
-            onSubmit={handleSendMessage}
-            onDragOver={handleDragOver}
-            onDragLeave={handleDragLeave}
-            onDrop={handleDrop}
-            style={{ paddingBottom: viewportOffset ? viewportOffset + 8 : undefined }}
-          >
-            {}
-            <button
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
-              className="p-2 sm:p-3 rounded-xl hover:bg-gradient-to-r hover:from-pink-50 hover:to-purple-50 dark:hover:from-pink-900/20 dark:hover:to-purple-900/20 transition-all duration-300 hover:shadow-md group flex-shrink-0"
-              aria-label="Attach file"
-            >
-              <Paperclip className="w-4 h-4 sm:w-5 sm:h-5 text-slate-500 group-hover:text-pink-600 dark:group-hover:text-pink-400 transition-colors duration-300" />
-            </button>
-
-            <input
-              ref={fileInputRef}
-              type="file"
-              onChange={handleFileSelect}
-              className="hidden"
-              accept="image/*,.pdf,.doc,.docx,.txt,.zip,.rar,.mp3,.mp4,.wav,.flac,.avi,.mov,.wmv,.js,.ts,.jsx,.tsx,.html,.css,.json"
-            />
-
-            {}
-            {selectedFile && (
-              <div className="group relative overflow-hidden bg-gradient-to-r from-pink-50 to-purple-50 dark:from-pink-900/20 dark:to-purple-900/20 rounded-2xl border border-pink-200 dark:border-pink-800 shadow-lg hover:shadow-xl transition-all hover:scale-[1.02] animate-in slide-in-from-bottom-2 duration-300">
-                <div className="absolute inset-0 bg-gradient-to-r from-pink-500/5 to-purple-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                <div className="relative flex items-center gap-2 sm:gap-4 p-2 sm:p-3 md:p-4">
-                  {filePreview ? (
-                    <div className="relative">
-                      <img
-                        src={filePreview}
-                        alt="Preview"
-                        className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl object-cover border-2 border-pink-200 dark:border-pink-700 shadow-md group-hover:scale-110 transition-transform duration-300 flex-shrink-0"
-                      />
-                      <div className="absolute -top-1 -right-1 w-3 h-3 sm:w-4 sm:h-4 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-full flex items-center justify-center">
-                        <ImageIcon className="w-2 h-2 sm:w-2.5 sm:h-2.5 text-white" />
-                      </div>
-                    </div>
-                  ) : (
-                    <div
-                      className={`w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br ${getFileColor(
-                        selectedFile.name,
-                        selectedFile.type.startsWith("image/")
-                          ? "image"
-                          : "file"
-                      )} rounded-xl flex items-center justify-center shadow-md group-hover:scale-110 transition-transform duration-300 flex-shrink-0`}
+        { }
+        <div className="flex-1 flex flex-col">
+          {selectedRoom ? (
+            <>
+              { }
+              <div className="flex items-center justify-between p-2 sm:p-3 border-b bg-background">
+                <div className="flex items-center gap-3 min-w-0 flex-1">
+                  { }
+                  <button
+                    className="md:hidden p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-all duration-200 flex-shrink-0"
+                    onClick={() => setSidebarOpen(true)}
+                    aria-label="Back to conversations"
+                  >
+                    <svg
+                      width="20"
+                      height="20"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      className="text-slate-700 dark:text-slate-300"
                     >
-                      {getFileIcon(
-                        selectedFile.name,
-                        selectedFile.type.startsWith("image/")
-                          ? "image"
-                          : "file"
+                      <path d="m15 18-6-6 6-6" />
+                    </svg>
+                  </button>
+
+                  <Avatar className="w-10 h-10 flex-shrink-0">
+                    <AvatarImage
+                      src={`${import.meta.env.VITE_BACKEND_URL ||
+                        "https://nexacreators.com.br"
+                        }${selectedRoom.other_user.avatar}`}
+                    />
+                    <AvatarFallback className="bg-pink-100 dark:bg-pink-900 text-pink-600 dark:text-pink-400">
+                      {selectedRoom.other_user.name.charAt(0).toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="min-w-0 flex-1">
+                    <h2 className="font-semibold text-slate-900 dark:text-white truncate">
+                      {selectedRoom.other_user.name}
+                    </h2>
+                    <div className="flex items-center gap-2">
+                      {isOtherUserOnline ? (
+                        <div className="flex items-center gap-1 text-green-500">
+                          <Wifi className="w-4 h-4" />
+                          <span className="text-xs">Online</span>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-1 text-red-500">
+                          <WifiOff className="w-4 h-4" />
+                          <span className="text-xs">Offline</span>
+                        </div>
                       )}
                     </div>
-                  )}
-                  <div className="flex-1 min-w-0">
-                    <div className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white truncate group-hover:text-pink-600 dark:group-hover:text-pink-400 transition-colors duration-300">
-                      {selectedFile.name}
-                    </div>
-                    <div className="text-xs text-slate-500 dark:text-slate-400 mt-1 flex items-center gap-1 sm:gap-2">
-                      <span>{formatFileSize(selectedFile.size)}</span>
-                      <span className="w-1 h-1 bg-slate-300 dark:bg-slate-600 rounded-full" />
-                      <span className="capitalize hidden sm:inline">
-                        {getFileExtension(selectedFile.name)} file
-                      </span>
-                      <span className="capitalize sm:hidden">
-                        {getFileExtension(selectedFile.name)}
-                      </span>
-                    </div>
-                    {isUploading ? (
-                      <div className="mt-2">
-                        <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-2">
-                          <div 
-                            className="bg-gradient-to-r from-pink-500 to-purple-600 h-2 rounded-full transition-all duration-300"
-                            style={{ width: `${uploadProgress}%` }}
-                          ></div>
-                        </div>
-                        <div className="text-xs text-slate-500 dark:text-slate-400 mt-1 flex items-center gap-1">
-                          <RefreshCw className="w-3 h-3 animate-spin" />
-                          <span>Enviando... {Math.round(uploadProgress)}%</span>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="text-xs text-slate-400 dark:text-slate-500 mt-1 flex items-center gap-1">
-                        <Sparkles className="w-3 h-3" />
-                        <span>Ready to send</span>
-                      </div>
-                    )}
                   </div>
-                  {!isUploading && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setSelectedFile(null);
-                        setFilePreview(null);
-                      }}
-                      className="p-1.5 sm:p-2 rounded-xl hover:bg-red-50 dark:hover:bg-red-900/20 text-slate-500 hover:text-red-600 dark:hover:text-red-400 transition-all duration-300 hover:shadow-md group-hover:scale-110 flex-shrink-0"
+                </div>
+
+                <div className="flex items-center gap-2">
+                  { }
+                  {activeContract && (
+                    <Button
+                      onClick={() => setShowTimelineSidebar(true)}
+                      variant="outline"
+                      size="sm"
+                      className="flex items-center gap-1 px-3 py-1 text-xs sm:text-sm bg-gradient-to-r from-blue-50 to-indigo-50 hover:from-blue-100 hover:to-indigo-100 border-blue-200 text-blue-700 hover:text-blue-800"
                     >
-                      <X className="w-3 h-3 sm:w-4 sm:h-4" />
-                    </button>
+                      <Clock className="w-3 h-3" />
+                      <span>Linha do Tempo</span>
+                    </Button>
+                  )}
+
+                  {contracts.some(contract =>
+                    contract.status === "completed" && !contract.has_brand_review
+                  ) && (
+                      <Button
+                        onClick={() => {
+                          const contractToReview = contracts.find(contract =>
+                            contract.status === "completed" && !contract.has_brand_review
+                          );
+                          if (contractToReview) {
+                            setContractToReview(contractToReview);
+                            setShowReviewModal(true);
+                          } else {
+                            toast({
+                              title: "Erro",
+                              description: "Nenhum contrato disponível para avaliação",
+                              variant: "destructive",
+                            });
+                          }
+                        }}
+                        className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white shadow-lg hover:shadow-xl transition-all duration-200"
+                      >
+                        <Star className="w-4 h-4 mr-2" />
+                        Avaliar Criador
+                      </Button>
+                    )}
+
+                  {canSendOffer && (
+                    <>
+                      {offers.some(offer => offer.status === 'pending') ? (
+                        <div className="flex items-center gap-2">
+                          <Button
+                            onClick={() => {
+                              const pendingOffer = offers.find(offer => offer.status === 'pending');
+                              if (pendingOffer) {
+                                handleExistingOffer(pendingOffer.id);
+                              }
+                            }}
+                            className="bg-orange-600 hover:bg-orange-700 text-white"
+                          >
+                            <AlertCircle className="w-4 h-4 mr-2" />
+                            Oferta Pendente
+                          </Button>
+                          <Button
+                            onClick={() => setShowOfferModal(true)}
+                            variant="outline"
+                            className="border-orange-600 text-orange-600 hover:bg-orange-50"
+                          >
+                            <Briefcase className="w-4 h-4 mr-2" />
+                            Nova Oferta
+                          </Button>
+                        </div>
+                      ) : (
+                        <Button
+                          onClick={() => setShowOfferModal(true)}
+                          className="bg-purple-600 hover:bg-purple-700 text-white"
+                        >
+                          <Briefcase className="w-4 h-4 mr-2" />
+                          Enviar Oferta
+                        </Button>
+                      )}
+                    </>
+                  )}
+
+                  {canReview && (
+                    <Button
+                      onClick={() => {
+                        let contractToReview = contracts.find(
+                          (c) =>
+                            c.status === "completed" &&
+                            c.workflow_status === "waiting_review"
+                        );
+
+                        if (!contractToReview) {
+                          contractToReview = contracts.find(
+                            (c) => c.status === "completed"
+                          );
+                        }
+
+                        if (!contractToReview && contracts.length > 0) {
+                          contractToReview = contracts[0];
+                        }
+
+                        if (contractToReview) {
+                          if (contractToReview.can_review === false) {
+                            toast({
+                              title: "Avaliação já realizada",
+                              description: "Você já avaliou este contrato",
+                              variant: "destructive",
+                            });
+                            return;
+                          }
+
+                          setContractToReview(contractToReview);
+                          setShowReviewModal(true);
+                        } else {
+                          toast({
+                            title: "Erro",
+                            description:
+                              "Nenhum contrato encontrado para avaliação",
+                            variant: "destructive",
+                          });
+                        }
+                      }}
+                      className="bg-blue-600 hover:bg-blue-700 text-white shadow-lg hover:shadow-xl transition-all duration-200"
+                    >
+                      <Star className="w-4 h-4 mr-2" />⚡ Avaliar Trabalho
+                    </Button>
+                  )}
+
+                  {hasCompletedContract && user?.role === "brand" && selectedRoom && (
+                    <Button
+                      onClick={() => setShowOfferModal(true)}
+                      className="bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white shadow-lg hover:shadow-xl transition-all duration-200"
+                    >
+                      <Briefcase className="w-4 h-4 mr-2" />
+                      Enviar Nova Oferta
+                    </Button>
                   )}
                 </div>
               </div>
-            )}
 
-            <div className="flex-1 relative min-w-0" style={{ paddingBottom: viewportOffset ? viewportOffset + 8 : undefined }}>
-              <Textarea
-                ref={inputRef}
-                rows={1}
-                className="w-full bg-background border-slate-200 dark:border-slate-700 focus:border-pink-300 dark:focus:border-pink-600 transition-all duration-200 resize-none rounded-2xl px-3 sm:px-4 py-2 sm:py-3 text-sm sm:text-base leading-6 max-h-52"
-                placeholder="Digite uma mensagem..."
-                value={input}
-                onChange={handleInputChange}
-                autoComplete="off"
-                aria-label="Digite uma mensagem"
-                onFocus={() => {
-                  setTimeout(() => {
-                    inputRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
-                  }, 50);
-                }}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && !e.shiftKey) {
-                    e.preventDefault();
-                    handleSendMessage(e as any);
-                  }
-                }}
-                onKeyUp={handleKeyUp}
-                onBlur={handleInputBlur}
-              />
-            </div>
-            <Button
-              type="submit"
-              size="sm"
-              disabled={(!input.trim() && !selectedFile) || !selectedRoom || isUploading}
-              className="bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white disabled:opacity-50 disabled:cursor-not-allowed px-3 sm:px-4 py-2 sm:py-3 h-9 sm:h-12 rounded-2xl shadow-lg transition-all duration-300 hover:shadow-xl hover:scale-105 group flex-shrink-0"
-            >
-              {isUploading ? (
-                <RefreshCw className="w-4 h-4 sm:w-5 sm:h-5 animate-spin" />
-              ) : (
-                <Send className="w-4 h-4 sm:w-5 sm:h-5 group-hover:scale-110 transition-transform duration-300" />
+              { }
+              {canReview && (
+                <div className="mx-4 mt-4 p-3 bg-gradient-to-r from-yellow-50 to-orange-50 dark:from-yellow-900/20 dark:to-orange-900/20 border border-yellow-300 dark:border-yellow-600 rounded-lg shadow-sm">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Star className="w-4 h-4 text-yellow-600" />
+                      <span className="text-sm font-medium text-yellow-800 dark:text-yellow-200">
+                        ⚡ Você tem contratos aguardando avaliação!
+                      </span>
+                    </div>
+                    <Button
+                      onClick={() => {
+                        const contractToReview = contracts.find(
+                          (c) =>
+                            c.status === "completed" &&
+                            c.workflow_status === "waiting_review"
+                        );
+                        if (contractToReview) {
+                          setContractToReview(contractToReview);
+                          setShowReviewModal(true);
+                        }
+                      }}
+                      size="sm"
+                      className="bg-yellow-600 hover:bg-yellow-700 text-white"
+                    >
+                      Avaliar Agora
+                    </Button>
+                  </div>
+                </div>
               )}
-              <span className="hidden sm:inline font-semibold ml-1 sm:ml-2">
-                {isUploading ? "Enviando..." : "Enviar"}
-              </span>
-            </Button>
-          </form>
-        </>
-      ) : (
-        <div className="flex-1 flex items-center justify-center">
-          <div className="text-center text-slate-500 dark:text-slate-400">
-            <div className="text-6xl mb-6">💬</div>
-            <p className="text-lg font-medium mb-2">Selecione uma conversa</p>
-            <p className="text-sm">
-              Escolha uma conversa da barra lateral para começar a conversar
-            </p>
-          </div>
+
+              { }
+              {user?.role === "brand" && selectedRoom && offers.some(offer => offer.status === 'pending') && (
+                <div className="mx-4 mt-4 p-3 bg-gradient-to-r from-orange-50 to-red-50 dark:from-orange-900/20 dark:to-red-900/20 border border-orange-300 dark:border-orange-600 rounded-lg shadow-sm">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <AlertCircle className="w-4 h-4 text-orange-600" />
+                      <span className="text-sm font-medium text-orange-800 dark:text-orange-200">
+                        📋 Você tem uma oferta pendente para este criador
+                      </span>
+                    </div>
+                    <Button
+                      onClick={() => {
+                        const pendingOffer = offers.find(offer => offer.status === 'pending');
+                        if (pendingOffer) {
+                          handleExistingOffer(pendingOffer.id);
+                        }
+                      }}
+                      size="sm"
+                      className="bg-orange-600 hover:bg-orange-700 text-white"
+                    >
+                      Ver Oferta
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              { }
+              {hasCompletedContract && user?.role === "brand" && selectedRoom && !activeContract && (
+                <div className="mx-4 mt-4 p-3 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 border border-green-300 dark:border-green-600 rounded-lg shadow-sm">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Sparkles className="w-4 h-4 text-green-600" />
+                      <span className="text-sm font-medium text-green-800 dark:text-green-200">
+                        🎉 Contrato finalizado! Você pode enviar uma nova oferta para este criador
+                      </span>
+                    </div>
+                    <Button
+                      onClick={() => setShowOfferModal(true)}
+                      size="sm"
+                      className="bg-green-600 hover:bg-green-700 text-white"
+                    >
+                      <Briefcase className="w-4 h-4 mr-2" />
+                      Enviar Nova Oferta
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              { }
+              <div className="flex-1 overflow-y-auto overflow-x-hidden p-3 sm:p-4 scrollbar-hide">
+                <div className="space-y-4">
+                  {hasMoreMessages && (
+                    <div className="flex justify-center">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleLoadMoreMessages}
+                        disabled={isLoadingMessages}
+                        className="text-xs px-3 py-1"
+                      >
+                        {isLoadingMessages ? "Carregando mensagens..." : "Carregar mensagens anteriores"}
+                      </Button>
+                    </div>
+                  )}
+
+                  {isLoadingMessages && messages.length === 0 ? (
+                    <div className="space-y-3">
+                      {[1, 2, 3].map((item) => (
+                        <div
+                          key={item}
+                          className="flex gap-3"
+                        >
+                          <div className="w-8 h-8 rounded-full bg-slate-200 dark:bg-slate-700" />
+                          <div className="flex-1 space-y-2">
+                            <div className="h-3 w-2/3 rounded bg-slate-200 dark:bg-slate-700" />
+                            <div className="h-3 w-1/2 rounded bg-slate-100 dark:bg-slate-800" />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <>
+                      {messages.map((message) => {
+                        return (
+                          <div
+                            key={message.id}
+                            className={cn(
+                              "flex gap-3",
+                              message.message_type === "system"
+                                ? "justify-center"
+                                : message.is_sender
+                                  ? "justify-end"
+                                  : "justify-start"
+                            )}
+                          >
+                            {!message.is_sender &&
+                              message.message_type !== "system" && (
+                                <Avatar className="w-8 h-8">
+                                  <AvatarImage
+                                    src={`${import.meta.env.VITE_BACKEND_URL ||
+                                      "https://nexacreators.com.br"
+                                      }${selectedRoom.other_user.avatar}`}
+                                  />
+                                  <AvatarFallback className="bg-pink-100 dark:bg-pink-900 text-pink-600 dark:text-pink-400 text-xs">
+                                    {selectedRoom.other_user.name
+                                      .charAt(0)
+                                      .toUpperCase()}
+                                  </AvatarFallback>
+                                </Avatar>
+                              )}
+                            <div
+                              className={cn(
+                                message.message_type === "system"
+                                  ? "max-w-[92vw] sm:max-w-2xl px-4 py-2 rounded-xl"
+                                  : "max-w-[85vw] sm:max-w-sm lg:max-w-lg xl:max-w-xl px-4 py-2 rounded-2xl",
+                                message.message_type === "system"
+                                  ? ""
+                                  : message.is_sender
+                                    ? "bg-pink-500 text-white"
+                                    : "bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white",
+                                "break-words"
+                              )}
+                            >
+                              {renderMessageContent(message)}
+                              {message.message_type !== "system" && (
+                                <div className="flex items-center justify-between mt-1">
+                                  <span className="text-xs opacity-70">
+                                    {formatMessageTime(message.created_at)}
+                                  </span>
+                                  {message.is_sender && message.id === lastSentMessageId && (
+                                    <div className="flex items-center gap-1">
+                                      {message.is_read ? (
+                                        <div className="flex items-center gap-0.5 text-sky-500">
+                                          <Check className="w-3 h-3" />
+                                          <Check className="w-3 h-3 -ml-1" />
+                                        </div>
+                                      ) : (
+                                        <div className="flex items-center gap-0.5 opacity-70">
+                                          <Check className="w-3 h-3" />
+                                        </div>
+                                      )}
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                      <div ref={messagesEndRef} />
+                    </>
+                  )}
+                </div>
+              </div>
+
+              { }
+              {typingUsers.size > 0 && (
+                <div className="px-4 pb-10 flex items-center gap-2 text-xs text-slate-600 dark:text-slate-300">
+                  <div className="flex space-x-1">
+                    <div
+                      className="w-2 h-2 bg-pink-500 rounded-full animate-bounce"
+                      style={{ animationDelay: "0ms" }}
+                    ></div>
+                    <div
+                      className="w-2 h-2 bg-pink-500 rounded-full animate-bounce"
+                      style={{ animationDelay: "150ms" }}
+                    ></div>
+                    <div
+                      className="w-2 h-2 bg-pink-500 rounded-full animate-bounce"
+                      style={{ animationDelay: "300ms" }}
+                    ></div>
+                  </div>
+                  <span>
+                    {Array.from(typingUsers).length === 1
+                      ? `${Array.from(typingUsers)[0]} está digitandoo...`
+                      : `${Array.from(typingUsers).join(", ")} estão digitando...`}
+                  </span>
+                </div>
+              )}
+
+              <form
+                className={`flex items-end gap-3 px-3 sm:px-4 py-3 border-t bg-background transition-colors ${dragActive ? 'bg-pink-50 dark:bg-pink-900/10' : ''
+                  }`}
+                onSubmit={handleSendMessage}
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onDrop={handleDrop}
+                style={{ paddingBottom: viewportOffset ? viewportOffset + 8 : undefined }}
+              >
+                { }
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="p-2 sm:p-3 rounded-xl hover:bg-gradient-to-r hover:from-pink-50 hover:to-purple-50 dark:hover:from-pink-900/20 dark:hover:to-purple-900/20 transition-all duration-300 hover:shadow-md group flex-shrink-0"
+                  aria-label="Attach file"
+                >
+                  <Paperclip className="w-4 h-4 sm:w-5 sm:h-5 text-slate-500 group-hover:text-pink-600 dark:group-hover:text-pink-400 transition-colors duration-300" />
+                </button>
+
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  onChange={handleFileSelect}
+                  className="hidden"
+                  accept="image/*,.pdf,.doc,.docx,.txt,.zip,.rar,.mp3,.mp4,.wav,.flac,.avi,.mov,.wmv,.js,.ts,.jsx,.tsx,.html,.css,.json"
+                />
+
+                { }
+                {selectedFile && (
+                  <div className="group relative overflow-hidden bg-gradient-to-r from-pink-50 to-purple-50 dark:from-pink-900/20 dark:to-purple-900/20 rounded-2xl border border-pink-200 dark:border-pink-800 shadow-lg hover:shadow-xl transition-all hover:scale-[1.02] animate-in slide-in-from-bottom-2 duration-300">
+                    <div className="absolute inset-0 bg-gradient-to-r from-pink-500/5 to-purple-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                    <div className="relative flex items-center gap-2 sm:gap-4 p-2 sm:p-3 md:p-4">
+                      {filePreview ? (
+                        <div className="relative">
+                          <img
+                            src={filePreview}
+                            alt="Preview"
+                            className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl object-cover border-2 border-pink-200 dark:border-pink-700 shadow-md group-hover:scale-110 transition-transform duration-300 flex-shrink-0"
+                          />
+                          <div className="absolute -top-1 -right-1 w-3 h-3 sm:w-4 sm:h-4 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-full flex items-center justify-center">
+                            <ImageIcon className="w-2 h-2 sm:w-2.5 sm:h-2.5 text-white" />
+                          </div>
+                        </div>
+                      ) : (
+                        <div
+                          className={`w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br ${getFileColor(
+                            selectedFile.name,
+                            selectedFile.type.startsWith("image/")
+                              ? "image"
+                              : "file"
+                          )} rounded-xl flex items-center justify-center shadow-md group-hover:scale-110 transition-transform duration-300 flex-shrink-0`}
+                        >
+                          {getFileIcon(
+                            selectedFile.name,
+                            selectedFile.type.startsWith("image/")
+                              ? "image"
+                              : "file"
+                          )}
+                        </div>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <div className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white truncate group-hover:text-pink-600 dark:group-hover:text-pink-400 transition-colors duration-300">
+                          {selectedFile.name}
+                        </div>
+                        <div className="text-xs text-slate-500 dark:text-slate-400 mt-1 flex items-center gap-1 sm:gap-2">
+                          <span>{formatFileSize(selectedFile.size)}</span>
+                          <span className="w-1 h-1 bg-slate-300 dark:bg-slate-600 rounded-full" />
+                          <span className="capitalize hidden sm:inline">
+                            {getFileExtension(selectedFile.name)} file
+                          </span>
+                          <span className="capitalize sm:hidden">
+                            {getFileExtension(selectedFile.name)}
+                          </span>
+                        </div>
+                        {isUploading ? (
+                          <div className="mt-2">
+                            <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-2">
+                              <div
+                                className="bg-gradient-to-r from-pink-500 to-purple-600 h-2 rounded-full transition-all duration-300"
+                                style={{ width: `${uploadProgress}%` }}
+                              ></div>
+                            </div>
+                            <div className="text-xs text-slate-500 dark:text-slate-400 mt-1 flex items-center gap-1">
+                              <RefreshCw className="w-3 h-3 animate-spin" />
+                              <span>Enviando... {Math.round(uploadProgress)}%</span>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="text-xs text-slate-400 dark:text-slate-500 mt-1 flex items-center gap-1">
+                            <Sparkles className="w-3 h-3" />
+                            <span>Ready to send</span>
+                          </div>
+                        )}
+                      </div>
+                      {!isUploading && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSelectedFile(null);
+                            setFilePreview(null);
+                          }}
+                          className="p-1.5 sm:p-2 rounded-xl hover:bg-red-50 dark:hover:bg-red-900/20 text-slate-500 hover:text-red-600 dark:hover:text-red-400 transition-all duration-300 hover:shadow-md group-hover:scale-110 flex-shrink-0"
+                        >
+                          <X className="w-3 h-3 sm:w-4 sm:h-4" />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                <div className="flex-1 relative min-w-0" style={{ paddingBottom: viewportOffset ? viewportOffset + 8 : undefined }}>
+                  <Textarea
+                    ref={inputRef}
+                    rows={1}
+                    className="w-full bg-background border-slate-200 dark:border-slate-700 focus:border-pink-300 dark:focus:border-pink-600 transition-all duration-200 resize-none rounded-2xl px-3 sm:px-4 py-2 sm:py-3 text-sm sm:text-base leading-6 max-h-52"
+                    placeholder="Digite uma mensagem..."
+                    value={input}
+                    onChange={handleInputChange}
+                    autoComplete="off"
+                    aria-label="Digite uma mensagem"
+                    onFocus={() => {
+                      setTimeout(() => {
+                        inputRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+                      }, 50);
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && !e.shiftKey) {
+                        e.preventDefault();
+                        handleSendMessage(e as any);
+                      }
+                    }}
+                    onKeyUp={handleKeyUp}
+                    onBlur={handleInputBlur}
+                  />
+                </div>
+                <Button
+                  type="submit"
+                  size="sm"
+                  disabled={(!input.trim() && !selectedFile) || !selectedRoom || isUploading}
+                  className="bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white disabled:opacity-50 disabled:cursor-not-allowed px-3 sm:px-4 py-2 sm:py-3 h-9 sm:h-12 rounded-2xl shadow-lg transition-all duration-300 hover:shadow-xl hover:scale-105 group flex-shrink-0"
+                >
+                  {isUploading ? (
+                    <RefreshCw className="w-4 h-4 sm:w-5 sm:h-5 animate-spin" />
+                  ) : (
+                    <Send className="w-4 h-4 sm:w-5 sm:h-5 group-hover:scale-110 transition-transform duration-300" />
+                  )}
+                  <span className="hidden sm:inline font-semibold ml-1 sm:ml-2">
+                    {isUploading ? "Enviando..." : "Enviar"}
+                  </span>
+                </Button>
+              </form>
+            </>
+          ) : (
+            <div className="flex-1 flex items-center justify-center">
+              <div className="text-center text-slate-500 dark:text-slate-400">
+                <div className="text-6xl mb-6">💬</div>
+                <p className="text-lg font-medium mb-2">Selecione uma conversa</p>
+                <p className="text-sm">
+                  Escolha uma conversa da barra lateral para começar a conversar
+                </p>
+              </div>
+            </div>
+          )}
         </div>
-      )}
-    </div>
-  </div>
+      </div>
 
-  {}
-  {sidebarOpen && (
-    <div
-      className="md:hidden fixed inset-0 bg-black/30 backdrop-blur-sm z-30"
-      onClick={() => setSidebarOpen(false)}
-    />
-  )}
-
-  {}
-  {imageViewer.isOpen &&
-    createPortal(
-      <div
-        ref={imageViewerRef}
-        className="fixed inset-0 z-[9999] bg-black/90 backdrop-blur-sm flex items-center justify-center"
-        onClick={() => {
-          setImageViewer({
-            isOpen: false,
-            imageUrl: "",
-            imageName: "",
-            imageSize: "",
-          });
-          setImageZoom(1);
-          setImageRotation(0);
-        }}
-      >
-        {}
+      { }
+      {sidebarOpen && (
         <div
-          className="relative max-w-[90vw] max-h-[90vh] flex items-center justify-center"
-          onClick={(e) => e.stopPropagation()}
-        >
-          <img
-            src={imageViewer.imageUrl}
-            alt={imageViewer.imageName}
-            className="max-w-full max-h-full object-contain rounded-lg shadow-2xl"
-            style={{
-              transform: `scale(${imageZoom}) rotate(${imageRotation}deg)`,
-              transition: "transform 0.3s ease-in-out",
-            }}
-            draggable={false}
-          />
-        </div>
+          className="md:hidden fixed inset-0 bg-black/30 backdrop-blur-sm z-30"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
 
-        {}
-        <div className="absolute top-4 left-1/2 transform -translate-x-1/2 flex items-center gap-2 bg-black/50 backdrop-blur-sm rounded-xl p-2 border border-white/20">
-          <button
-            onClick={() =>
-              setImageZoom((prev) => Math.max(prev - 0.25, 0.25))
-            }
-            className="p-2 rounded-lg bg-white/10 hover:bg-white/20 transition-colors text-white"
-            title="Zoom Out"
-          >
-            <ZoomOut className="w-5 h-5" />
-          </button>
-          <button
-            onClick={() => setImageZoom((prev) => Math.min(prev + 0.25, 3))}
-            className="p-2 rounded-lg bg-white/10 hover:bg-white/20 transition-colors text-white"
-            title="Zoom In"
-          >
-            <ZoomIn className="w-5 h-5" />
-          </button>
-          <button
-            onClick={() => setImageRotation((prev) => (prev + 90) % 360)}
-            className="p-2 rounded-lg bg-white/10 hover:bg-white/20 transition-colors text-white"
-            title="Rotate"
-          >
-            <RotateCcw className="w-5 h-5" />
-          </button>
-          <button
-            onClick={() => {
-              setImageZoom(1);
-              setImageRotation(0);
-            }}
-            className="p-2 rounded-lg bg-white/10 hover:bg-white/20 transition-colors text-white"
-            title="Reset"
-          >
-            <Minimize2 className="w-5 h-5" />
-          </button>
-          <button
-            onClick={async () => {
-              try {
-                await downloadImageToLocal(
-                  imageViewer.imageUrl,
-                  imageViewer.imageName
-                );
-              } catch (error) {
-                toast({
-                  title: "Erro",
-                  description: "Falha ao baixar imagem",
-                  variant: "destructive",
-                });
-              }
-            }}
-            className="p-2 rounded-lg bg-white/10 hover:bg-white/20 transition-colors text-white"
-            title="Download"
-          >
-            <Download className="w-5 h-5" />
-          </button>
-          <button
+      { }
+      {imageViewer.isOpen &&
+        createPortal(
+          <div
+            ref={imageViewerRef}
+            className="fixed inset-0 z-[9999] bg-black/90 backdrop-blur-sm flex items-center justify-center"
             onClick={() => {
               setImageViewer({
                 isOpen: false,
@@ -3512,177 +3429,261 @@ export default function ChatPage({ setComponent, campaignId, creatorId }: ChatPa
               setImageZoom(1);
               setImageRotation(0);
             }}
-            className="p-2 rounded-lg bg-white/10 hover:bg-white/20 transition-colors text-white"
-            title="Close"
           >
-            <X className="w-5 h-5" />
-          </button>
-        </div>
-
-        {}
-        <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-black/50 backdrop-blur-sm rounded-xl p-3 border border-white/20">
-          <div className="text-white text-center">
-            <div className="font-medium">{imageViewer.imageName}</div>
-            {imageViewer.imageSize && (
-              <div className="text-sm text-white/70">{imageViewer.imageSize}</div>
-            )}
-            <div className="text-sm text-white/70">
-              Zoom: {Math.round(imageZoom * 100)}% | Rotation: {imageRotation}°
+            { }
+            <div
+              className="relative max-w-[90vw] max-h-[90vh] flex items-center justify-center"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <img
+                src={imageViewer.imageUrl}
+                alt={imageViewer.imageName}
+                className="max-w-full max-h-full object-contain rounded-lg shadow-2xl"
+                style={{
+                  transform: `scale(${imageZoom}) rotate(${imageRotation}deg)`,
+                  transition: "transform 0.3s ease-in-out",
+                }}
+                draggable={false}
+              />
             </div>
-            <div className="text-xs text-white/50 mt-1">
-              Press + / - to zoom, R to rotate, 0 to reset, D to download, ESC to close
+
+            { }
+            <div className="absolute top-4 left-1/2 transform -translate-x-1/2 flex items-center gap-2 bg-black/50 backdrop-blur-sm rounded-xl p-2 border border-white/20">
+              <button
+                onClick={() =>
+                  setImageZoom((prev) => Math.max(prev - 0.25, 0.25))
+                }
+                className="p-2 rounded-lg bg-white/10 hover:bg-white/20 transition-colors text-white"
+                title="Zoom Out"
+              >
+                <ZoomOut className="w-5 h-5" />
+              </button>
+              <button
+                onClick={() => setImageZoom((prev) => Math.min(prev + 0.25, 3))}
+                className="p-2 rounded-lg bg-white/10 hover:bg-white/20 transition-colors text-white"
+                title="Zoom In"
+              >
+                <ZoomIn className="w-5 h-5" />
+              </button>
+              <button
+                onClick={() => setImageRotation((prev) => (prev + 90) % 360)}
+                className="p-2 rounded-lg bg-white/10 hover:bg-white/20 transition-colors text-white"
+                title="Rotate"
+              >
+                <RotateCcw className="w-5 h-5" />
+              </button>
+              <button
+                onClick={() => {
+                  setImageZoom(1);
+                  setImageRotation(0);
+                }}
+                className="p-2 rounded-lg bg-white/10 hover:bg-white/20 transition-colors text-white"
+                title="Reset"
+              >
+                <Minimize2 className="w-5 h-5" />
+              </button>
+              <button
+                onClick={async () => {
+                  try {
+                    await downloadImageToLocal(
+                      imageViewer.imageUrl,
+                      imageViewer.imageName
+                    );
+                  } catch (error) {
+                    toast({
+                      title: "Erro",
+                      description: "Falha ao baixar imagem",
+                      variant: "destructive",
+                    });
+                  }
+                }}
+                className="p-2 rounded-lg bg-white/10 hover:bg-white/20 transition-colors text-white"
+                title="Download"
+              >
+                <Download className="w-5 h-5" />
+              </button>
+              <button
+                onClick={() => {
+                  setImageViewer({
+                    isOpen: false,
+                    imageUrl: "",
+                    imageName: "",
+                    imageSize: "",
+                  });
+                  setImageZoom(1);
+                  setImageRotation(0);
+                }}
+                className="p-2 rounded-lg bg-white/10 hover:bg-white/20 transition-colors text-white"
+                title="Close"
+              >
+                <X className="w-5 h-5" />
+              </button>
             </div>
-          </div>
-        </div>
-      </div>,
-      document.body
-    )}
 
-  {}
-  {showOfferModal && selectedRoom && (
-    <div className="fixed inset-0 z-[9999] bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
-      <CreateOffer
-        creatorId={selectedRoom.other_user.id}
-        creatorName={selectedRoom.other_user.name}
-        chatRoomId={selectedRoom.room_id}
-        onOfferCreated={handleOfferCreated}
-        onCancel={handleOfferCancel}
-        onExistingOffer={handleExistingOffer}
-        onReloadMessages={() =>
-          selectedRoom && loadMessages(selectedRoom.room_id)
-        }
-      />
-    </div>
-  )}
-
-  {}
-  {showExistingOfferModal && (
-    <div className="fixed inset-0 z-[9999] bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="bg-background rounded-lg p-6 max-w-md w-full">
-        <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-          <AlertCircle className="w-5 h-5 text-orange-500" />
-          Oferta Existente
-        </h3>
-
-        {}
-        {existingOfferId && (
-          <div className="mb-4 p-3 bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-700 rounded-lg">
-            <p className="text-sm text-orange-800 dark:text-orange-200 mb-2">
-              <strong>Oferta Atual:</strong>
-            </p>
-            {(() => {
-              const existingOffer = offers.find(offer => offer.id === existingOfferId);
-              if (existingOffer) {
-                return (
-                  <div className="text-sm">
-                    <p><strong>Valor:</strong> {existingOffer.budget}</p>
-                    <p><strong>Prazo:</strong> {existingOffer.estimated_days} dias</p>
-                    <p><strong>Status:</strong> {existingOffer.status === 'pending' ? 'Pendente' : existingOffer.status}</p>
-                    <p><strong>Expira em:</strong> {existingOffer.days_until_expiry} dias</p>
-                  </div>
-                );
-              }
-              return <p className="text-sm text-gray-600">Detalhes da oferta não disponíveis</p>;
-            })()}
-          </div>
+            { }
+            <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-black/50 backdrop-blur-sm rounded-xl p-3 border border-white/20">
+              <div className="text-white text-center">
+                <div className="font-medium">{imageViewer.imageName}</div>
+                {imageViewer.imageSize && (
+                  <div className="text-sm text-white/70">{imageViewer.imageSize}</div>
+                )}
+                <div className="text-sm text-white/70">
+                  Zoom: {Math.round(imageZoom * 100)}% | Rotation: {imageRotation}°
+                </div>
+                <div className="text-xs text-white/50 mt-1">
+                  Press + / - to zoom, R to rotate, 0 to reset, D to download, ESC to close
+                </div>
+              </div>
+            </div>
+          </div>,
+          document.body
         )}
 
-        <p className="text-muted-foreground mb-6">
-          Você já tem uma oferta pendente para este criador. Deseja cancelar
-          a oferta existente e criar uma nova?
-        </p>
-
-        <div className="flex gap-3 justify-end">
-          <Button
-            variant="outline"
-            onClick={() => {
-              setShowExistingOfferModal(false);
-              setExistingOfferId(null);
-            }}
-          >
-            Manter Oferta
-          </Button>
-          <Button
-            onClick={handleCancelExistingOffer}
-            className="bg-red-600 hover:bg-red-700"
-          >
-            Cancelar e Criar Nova
-          </Button>
+      { }
+      {showOfferModal && selectedRoom && (
+        <div className="fixed inset-0 z-[9999] bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+          <CreateOffer
+            creatorId={selectedRoom.other_user.id}
+            creatorName={selectedRoom.other_user.name}
+            chatRoomId={selectedRoom.room_id}
+            onOfferCreated={handleOfferCreated}
+            onCancel={handleOfferCancel}
+            onExistingOffer={handleExistingOffer}
+            onReloadMessages={() =>
+              selectedRoom && loadMessages(selectedRoom.room_id)
+            }
+          />
         </div>
-      </div>
-    </div>
-  )}
+      )}
 
-  {}
-  {showReviewModal && contractToReview && (
-    <div className="w-full h-screen flex justify-center items-center bg-black/60 backdrop-blur-sm">
-      <ReviewModal
-        isOpen={showReviewModal}
-        onClose={handleReviewModalClose}
-        contract={contractToReview}
-        onReviewSubmitted={handleReviewSubmitted}
-      />
-    </div>
-  )}
+      { }
+      {showExistingOfferModal && (
+        <div className="fixed inset-0 z-[9999] bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-background rounded-lg p-6 max-w-md w-full">
+            <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+              <AlertCircle className="w-5 h-5 text-orange-500" />
+              Oferta Existente
+            </h3>
 
-  {showCampaignFinalizationModal && contractToFinalize && (
-    <CampaignFinalizationModal
-      isOpen={showCampaignFinalizationModal}
-      onClose={() => {
-        setShowCampaignFinalizationModal(false);
-        setContractToFinalize(null);
-      }}
-      contract={contractToFinalize}
-      onCampaignFinalized={handleCampaignFinalized}
-    />
-  )}
+            { }
+            {existingOfferId && (
+              <div className="mb-4 p-3 bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-700 rounded-lg">
+                <p className="text-sm text-orange-800 dark:text-orange-200 mb-2">
+                  <strong>Oferta Atual:</strong>
+                </p>
+                {(() => {
+                  const existingOffer = offers.find(offer => offer.id === existingOfferId);
+                  if (existingOffer) {
+                    return (
+                      <div className="text-sm">
+                        <p><strong>Valor:</strong> {existingOffer.budget}</p>
+                        <p><strong>Prazo:</strong> {existingOffer.estimated_days} dias</p>
+                        <p><strong>Status:</strong> {existingOffer.status === 'pending' ? 'Pendente' : existingOffer.status}</p>
+                        <p><strong>Expira em:</strong> {existingOffer.days_until_expiry} dias</p>
+                      </div>
+                    );
+                  }
+                  return <p className="text-sm text-gray-600">Detalhes da oferta não disponíveis</p>;
+                })()}
+              </div>
+            )}
 
-  {showTerminateModal && contractToTerminate && (
-    <Dialog open={showTerminateModal} onOpenChange={setShowTerminateModal}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>Terminar Contrato</DialogTitle>
-          <DialogDescription>
-            Tem certeza que deseja terminar este contrato? Uma mensagem será enviada ao criador.
-          </DialogDescription>
-        </DialogHeader>
-        <div className="space-y-4">
-          <div>
-            <Label>Mensagem de Terminação (opcional)</Label>
-            <Textarea
-              value={terminationMessage}
-              onChange={(e) => setTerminationMessage(e.target.value)}
-              placeholder="Explique o motivo da terminação..."
-              className="mt-1"
-            />
+            <p className="text-muted-foreground mb-6">
+              Você já tem uma oferta pendente para este criador. Deseja cancelar
+              a oferta existente e criar uma nova?
+            </p>
+
+            <div className="flex gap-3 justify-end">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setShowExistingOfferModal(false);
+                  setExistingOfferId(null);
+                }}
+              >
+                Manter Oferta
+              </Button>
+              <Button
+                onClick={handleCancelExistingOffer}
+                className="bg-red-600 hover:bg-red-700"
+              >
+                Cancelar e Criar Nova
+              </Button>
+            </div>
           </div>
         </div>
-        <DialogFooter>
-          <Button
-            variant="outline"
-            onClick={() => {
-              setShowTerminateModal(false);
-              setContractToTerminate(null);
-              setTerminationMessage("");
-            }}
-          >
-            Cancelar
-          </Button>
-          <Button onClick={handleTerminationConfirmed} variant="destructive">
-            Confirmar Terminação
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  )}
+      )}
 
-  {showTimelineSidebar && activeContract && (
-    <CampaignTimelineSidebar
-      contractId={activeContract.id}
-      isOpen={showTimelineSidebar}
-      onClose={() => setShowTimelineSidebar(false)}
-    />
-  )}
-</div>
+      { }
+      {showReviewModal && contractToReview && (
+        <div className="w-full h-screen flex justify-center items-center bg-black/60 backdrop-blur-sm">
+          <ReviewModal
+            isOpen={showReviewModal}
+            onClose={handleReviewModalClose}
+            contract={contractToReview}
+            onReviewSubmitted={handleReviewSubmitted}
+          />
+        </div>
+      )}
+
+      {showCampaignFinalizationModal && contractToFinalize && (
+        <CampaignFinalizationModal
+          isOpen={showCampaignFinalizationModal}
+          onClose={() => {
+            setShowCampaignFinalizationModal(false);
+            setContractToFinalize(null);
+          }}
+          contract={contractToFinalize}
+          onCampaignFinalized={handleCampaignFinalized}
+        />
+      )}
+
+      {showTerminateModal && contractToTerminate && (
+        <Dialog open={showTerminateModal} onOpenChange={setShowTerminateModal}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Terminar Contrato</DialogTitle>
+              <DialogDescription>
+                Tem certeza que deseja terminar este contrato? Uma mensagem será enviada ao criador.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div>
+                <Label>Mensagem de Terminação (opcional)</Label>
+                <Textarea
+                  value={terminationMessage}
+                  onChange={(e) => setTerminationMessage(e.target.value)}
+                  placeholder="Explique o motivo da terminação..."
+                  className="mt-1"
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setShowTerminateModal(false);
+                  setContractToTerminate(null);
+                  setTerminationMessage("");
+                }}
+              >
+                Cancelar
+              </Button>
+              <Button onClick={handleTerminationConfirmed} variant="destructive">
+                Confirmar Terminação
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {showTimelineSidebar && activeContract && (
+        <CampaignTimelineSidebar
+          contractId={activeContract.id}
+          isOpen={showTimelineSidebar}
+          onClose={() => setShowTimelineSidebar(false)}
+        />
+      )}
+    </div>
   )
 }
