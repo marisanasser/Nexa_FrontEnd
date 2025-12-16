@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { createPortal } from "react-dom";
 import { ScrollArea } from "./ui/scroll-area";
 import { Input } from "./ui/input";
@@ -103,6 +103,12 @@ export default function Chat() {
   const imageViewerRef = useRef<HTMLDivElement>(null);
   const [viewportOffset, setViewportOffset] = useState(0);
 
+  const lastSentMessageId = useMemo(() => {
+    const sentMessages = messages.filter((m) => m.is_sender);
+    if (sentMessages.length === 0) return null;
+    return sentMessages[sentMessages.length - 1].id;
+  }, [messages]);
+
   
   const {
     isConnected,
@@ -168,7 +174,6 @@ export default function Chat() {
       loadChatRooms();
     }
 
-    
     return () => {
       if (selectedRoom && isCurrentUserTyping) {
         if (typingTimeoutRef.current) {
@@ -179,7 +184,7 @@ export default function Chat() {
         stopTyping(selectedRoom.room_id);
       }
     };
-  }, [selectedRoom]);
+  }, []);
 
   
   useEffect(() => {
@@ -234,7 +239,6 @@ export default function Chat() {
   useEffect(() => {
     if (!isMountedRef.current) return;
 
-    
     const handleNewMessage = (data: any) => {
       if (!isMountedRef.current) return;
 
@@ -297,8 +301,52 @@ export default function Chat() {
         }
       }
 
-      
-      loadChatRooms();
+      setChatRooms((prevRooms) => {
+        const updatedRooms = prevRooms.map((room) => {
+          if (room.room_id === data.roomId) {
+            const roomUpdateMessage: Message = {
+              id: data.messageId || Date.now(),
+              message: data.message,
+              message_type: data.messageType || "text",
+              sender_id: data.senderId,
+              sender_name: data.senderName,
+              sender_avatar: data.senderAvatar,
+              is_sender: data.senderId === user?.id,
+              file_path: data.fileData?.file_path,
+              file_name: data.fileData?.file_name,
+              file_size: data.fileData?.file_size,
+              file_type: data.fileData?.file_type,
+              file_url: data.fileData?.file_url,
+              is_read: false,
+              created_at: data.timestamp || new Date().toISOString(),
+              offer_data: data.offerData,
+            };
+
+            const unreadIncrement = roomUpdateMessage.is_sender ? 0 : 1;
+
+            return {
+              ...room,
+              last_message: {
+                id: roomUpdateMessage.id,
+                message: roomUpdateMessage.message,
+                message_type: roomUpdateMessage.message_type,
+                sender_id: roomUpdateMessage.sender_id,
+                is_sender: roomUpdateMessage.is_sender,
+                created_at: roomUpdateMessage.created_at,
+              },
+              last_message_at: roomUpdateMessage.created_at,
+              unread_count: room.unread_count + unreadIncrement,
+            };
+          }
+          return room;
+        });
+
+        return updatedRooms.sort((a, b) => {
+          const aTime = a.last_message_at ? new Date(a.last_message_at).getTime() : 0;
+          const bTime = b.last_message_at ? new Date(b.last_message_at).getTime() : 0;
+          return bTime - aTime;
+        });
+      });
     };
 
     
@@ -704,11 +752,29 @@ export default function Chat() {
       let newMessage: Message;
       
       if (selectedFile) {
+        tempId = Date.now();
+        const optimisticMessage: Message = {
+          id: tempId,
+          message: trimmed || selectedFile.name,
+          message_type: 'file',
+          sender_id: user?.id || 0,
+          sender_name: user?.name || '',
+          sender_avatar: user?.avatar_url,
+          is_sender: true,
+          is_read: false,
+          sent: true,
+          pending: true,
+          file_name: selectedFile.name,
+          created_at: new Date().toISOString(),
+        };
+
+        setMessages((prev) => [...prev, optimisticMessage]);
+
         setIsUploading(true);
         setUploadProgress(0);
-        
+
         const progressInterval = setInterval(() => {
-          setUploadProgress(prev => {
+          setUploadProgress((prev) => {
             if (prev >= 90) {
               clearInterval(progressInterval);
               return prev;
@@ -717,14 +783,17 @@ export default function Chat() {
           });
         }, 200);
 
-        newMessage = await sendMessage(
-          selectedRoom.room_id,
-          trimmed, 
-          selectedFile
-        );
-        console.log(newMessage);
+        newMessage = await sendMessage(selectedRoom.room_id, trimmed, selectedFile);
+
         clearInterval(progressInterval);
         setUploadProgress(100);
+
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === tempId ? ({ ...newMessage, is_sender: true, sent: true, pending: false } as any) : m
+          )
+        );
+
         if (isMountedRef.current) {
           setSelectedFile(null);
           setFilePreview(null);
@@ -749,9 +818,11 @@ export default function Chat() {
 
         newMessage = await sendMessage(selectedRoom.room_id, trimmed);
 
-        setMessages((prev) => prev.map(m =>
-          m.id === tempId ? { ...newMessage, is_sender: true, sent: true, pending: false } as any : m
-        ));
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === tempId ? ({ ...newMessage, is_sender: true, sent: true, pending: false } as any) : m
+          )
+        );
       }
 
       if (isMountedRef.current) {
@@ -2261,10 +2332,11 @@ export default function Chat() {
                   <Button
                     onClick={() => setShowTimelineSidebar(true)}
                     variant="outline"
-                    className="bg-gradient-to-r from-blue-50 to-indigo-50 hover:from-blue-100 hover:to-indigo-100 border-blue-200 text-blue-700 hover:text-blue-800"
+                    size="sm"
+                    className="flex items-center gap-1 px-3 py-1 text-xs sm:text-sm bg-gradient-to-r from-blue-50 to-indigo-50 hover:from-blue-100 hover:to-indigo-100 border-blue-200 text-blue-700 hover:text-blue-800"
                   >
-                    <Clock className="w-4 h-4 mr-2" />
-                    Linha do Tempo
+                    <Clock className="w-3 h-3" />
+                    <span>Linha do Tempo</span>
                   </Button>
                 )}
 
@@ -2344,10 +2416,6 @@ export default function Chat() {
             <ScrollArea className="flex-1 p-4 overflow-y-auto">
               <div className="space-y-4">
                 {messages.map((message, index) => {
-                  
-                  if (messages.filter((m) => m.id === message.id).length > 1) {
-                    console.warn("Rendering duplicate message ID:", message.id, "at index:", index);
-                  }
                   return (
                     <div
                       key={`msg-${message.id ?? index}-${index}`}
@@ -2386,15 +2454,17 @@ export default function Chat() {
                             <span className="text-xs opacity-70">
                               {formatMessageTime(message.created_at)}
                             </span>
-                        {message.is_sender && (
+                            {message.is_sender && message.id === lastSentMessageId && (
                               <div className="flex items-center gap-1">
                                 {message.is_read ? (
-                                  <div className="flex items-center gap-0.5">
+                                  <div className="flex items-center gap-0.5 text-sky-500">
                                     <Check className="w-3 h-3" />
                                     <Check className="w-3 h-3 -ml-1" />
                                   </div>
                                 ) : (
-                                  <Check className="w-3 h-3" />
+                                  <div className="flex items-center gap-0.5 opacity-70">
+                                    <Check className="w-3 h-3" />
+                                  </div>
                                 )}
                               </div>
                             )}
@@ -2408,7 +2478,31 @@ export default function Chat() {
               </div>
             </ScrollArea>
 
-            {}
+            
+            {typingUsers.size > 0 && (
+              <div className="px-16 pb-1 flex items-center gap-2 text-xs text-slate-600 dark:text-slate-300">
+                <div className="flex space-x-1">
+                  <div
+                    className="w-2 h-2 bg-pink-500 rounded-full animate-bounce"
+                    style={{ animationDelay: "0ms" }}
+                  ></div>
+                  <div
+                    className="w-2 h-2 bg-pink-500 rounded-full animate-bounce"
+                    style={{ animationDelay: "150ms" }}
+                  ></div>
+                  <div
+                    className="w-2 h-2 bg-pink-500 rounded-full animate-bounce"
+                    style={{ animationDelay: "300ms" }}
+                  ></div>
+                </div>
+                <span>
+                  {Array.from(typingUsers).length === 1
+                    ? `${Array.from(typingUsers)[0]} está digitando...`
+                    : `${Array.from(typingUsers).join(", ")} estão digitando...`}
+                </span>
+              </div>
+            )}
+
             <form
               className={`flex items-end gap-3 px-3 sm:px-4 py-3 sm:py-4 border-t bg-background transition-colors ${
                 dragActive ? 'bg-pink-50 dark:bg-pink-900/10' : ''
@@ -2515,33 +2609,6 @@ export default function Chat() {
                   onKeyUp={handleKeyUp}
                   onBlur={handleInputBlur}
                 />
-
-                {}
-                {typingUsers.size > 0 && (
-                  <div className="absolute -top-8 left-0 right-0 flex items-center gap-2 px-4 py-2">
-                    <div className="flex items-center gap-2">
-                      <div className="flex space-x-1">
-                        <div
-                          className="w-2 h-2 bg-pink-500 rounded-full animate-bounce"
-                          style={{ animationDelay: "0ms" }}
-                        ></div>
-                        <div
-                          className="w-2 h-2 bg-pink-500 rounded-full animate-bounce"
-                          style={{ animationDelay: "150ms" }}
-                        ></div>
-                        <div
-                          className="w-2 h-2 bg-pink-500 rounded-full animate-bounce"
-                          style={{ animationDelay: "300ms" }}
-                        ></div>
-                      </div>
-                      <span className="text-sm text-slate-600 dark:text-slate-300">
-                        {Array.from(typingUsers).length === 1
-                          ? `${Array.from(typingUsers)[0]} está digitando...`
-                          : `${Array.from(typingUsers).join(", ")} estão digitando...`}
-                      </span>
-                    </div>
-                  </div>
-                )}
               </div>
               <Button
                 type="submit"

@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { createPortal } from "react-dom";
 import { Input } from "../../components/ui/input";
 import { Textarea } from "../../components/ui/textarea";
@@ -177,6 +177,12 @@ export default function ChatPage({ setComponent, campaignId, creatorId }: ChatPa
   const [messagesPage, setMessagesPage] = useState(1);
   const [hasMoreMessages, setHasMoreMessages] = useState(false);
 
+  const lastSentMessageId = useMemo(() => {
+    const sentMessages = messages.filter((m) => m.is_sender);
+    if (sentMessages.length === 0) return null;
+    return sentMessages[sentMessages.length - 1].id;
+  }, [messages]);
+
   useEffect(() => {
     const vv = (window as any).visualViewport as VisualViewport | undefined;
     if (!vv) return;
@@ -304,11 +310,11 @@ export default function ChatPage({ setComponent, campaignId, creatorId }: ChatPa
     if (selectedRoomId && chatRooms.length > 0) {
       const room = chatRooms.find((r) => r.room_id === selectedRoomId);
       if (room) {
-        setSelectedRoom(room);
+        handleConversationSelect(room);
         localStorage.removeItem("selectedChatRoom"); 
       }
     }
-  }, [chatRooms]);
+  }, [chatRooms, handleConversationSelect]);
 
   
   useEffect(() => {
@@ -321,9 +327,9 @@ export default function ChatPage({ setComponent, campaignId, creatorId }: ChatPa
     );
     
     if (room) {
-      setSelectedRoom(room);
+      handleConversationSelect(room);
     }
-  }, [campaignId, creatorId, chatRooms]);
+  }, [campaignId, creatorId, chatRooms, handleConversationSelect]);
 
   
   useEffect(() => {
@@ -349,27 +355,7 @@ export default function ChatPage({ setComponent, campaignId, creatorId }: ChatPa
 
     if (selectedRoom) {
       joinRoom(selectedRoom.room_id);
-      
-      
       setOffersReady(false);
-      
-      
-      const loadRoomData = async () => {
-        try {
-          
-          await Promise.all([
-            loadOffers(selectedRoom.room_id),
-            loadContracts(selectedRoom.room_id)
-          ]);
-          
-          
-          await loadMessages(selectedRoom.room_id);
-        } catch (error) {
-          console.error('Error loading room data:', error);
-        }
-      };
-      
-      loadRoomData();
 
       return () => {
         if (isMountedRef.current) {
@@ -848,7 +834,7 @@ export default function ChatPage({ setComponent, campaignId, creatorId }: ChatPa
 
     
     setTypingUsers(new Set());
-
+    
     setSelectedRoom(room);
 
     
@@ -865,9 +851,6 @@ export default function ChatPage({ setComponent, campaignId, creatorId }: ChatPa
     
     await loadOffers(room.room_id);
 
-    
-
-    
     setTimeout(() => {
       if (inputRef.current && isMountedRef.current) {
         inputRef.current.focus();
@@ -1085,12 +1068,6 @@ export default function ChatPage({ setComponent, campaignId, creatorId }: ChatPa
           setHasMoreMessages(false);
         }
         
-
-
-        
-        joinRoom(roomId);
-
-        
         const unreadMessages = deduplicatedMessages.filter(
           (msg) => !msg.is_sender && !msg.is_read
         );
@@ -1208,12 +1185,27 @@ export default function ChatPage({ setComponent, campaignId, creatorId }: ChatPa
       let newMessage: Message;
 
       if (selectedFile) {
+        tempId = Date.now();
+        const optimisticMessage: Message = {
+          id: tempId,
+          message: trimmed || selectedFile.name,
+          message_type: 'file',
+          sender_id: user?.id || 0,
+          sender_name: user?.name || '',
+          sender_avatar: user?.avatar_url,
+          is_sender: true,
+          is_read: false,
+          created_at: new Date().toISOString(),
+          file_name: selectedFile.name,
+        };
+
+        setMessages((prev) => [...prev, optimisticMessage]);
+
         setIsUploading(true);
         setUploadProgress(0);
-        
-        
+
         const progressInterval = setInterval(() => {
-          setUploadProgress(prev => {
+          setUploadProgress((prev) => {
             if (prev >= 90) {
               clearInterval(progressInterval);
               return prev;
@@ -1222,15 +1214,15 @@ export default function ChatPage({ setComponent, campaignId, creatorId }: ChatPa
           });
         }, 200);
 
-        newMessage = await sendMessage(
-          selectedRoom.room_id,
-          trimmed, 
-          selectedFile
-        );
+        newMessage = await sendMessage(selectedRoom.room_id, trimmed, selectedFile);
 
         clearInterval(progressInterval);
         setUploadProgress(100);
-        
+
+        setMessages((prev) =>
+          prev.map((m) => (m.id === tempId ? ({ ...newMessage, is_sender: true } as any) : m))
+        );
+
         if (isMountedRef.current) {
           setSelectedFile(null);
           setFilePreview(null);
@@ -1249,13 +1241,13 @@ export default function ChatPage({ setComponent, campaignId, creatorId }: ChatPa
           created_at: new Date().toISOString(),
         };
 
-        setMessages(prev => [...prev, optimisticMessage]);
+        setMessages((prev) => [...prev, optimisticMessage]);
 
         newMessage = await sendMessage(selectedRoom.room_id, trimmed);
 
-        setMessages(prev => prev.map(m =>
-          m.id === tempId ? { ...newMessage, is_sender: true } as any : m
-        ));
+        setMessages((prev) =>
+          prev.map((m) => (m.id === tempId ? ({ ...newMessage, is_sender: true } as any) : m))
+        );
       }
 
       if (isMountedRef.current) {
@@ -2794,8 +2786,7 @@ export default function ChatPage({ setComponent, campaignId, creatorId }: ChatPa
               <div
                 key={room.id}
                 onClick={() => {
-                  setSelectedRoom(room);
-                  
+                  handleConversationSelect(room);
                   if (window.innerWidth < 768) setSidebarOpen(false);
                 }}
                 className={cn(
@@ -2906,10 +2897,11 @@ export default function ChatPage({ setComponent, campaignId, creatorId }: ChatPa
                 <Button
                   onClick={() => setShowTimelineSidebar(true)}
                   variant="outline"
-                  className="bg-gradient-to-r from-blue-50 to-indigo-50 hover:from-blue-100 hover:to-indigo-100 border-blue-200 text-blue-700 hover:text-blue-800"
+                  size="sm"
+                  className="flex items-center gap-1 px-3 py-1 text-xs sm:text-sm bg-gradient-to-r from-blue-50 to-indigo-50 hover:from-blue-100 hover:to-indigo-100 border-blue-200 text-blue-700 hover:text-blue-800"
                 >
-                  <Clock className="w-4 h-4 mr-2" />
-                  Linha do Tempo
+                  <Clock className="w-3 h-3" />
+                  <span>Linha do Tempo</span>
                 </Button>
               )}
 
@@ -3194,15 +3186,17 @@ export default function ChatPage({ setComponent, campaignId, creatorId }: ChatPa
                           <span className="text-xs opacity-70">
                             {formatMessageTime(message.created_at)}
                           </span>
-                          {message.is_sender && (
+                          {message.is_sender && message.id === lastSentMessageId && (
                             <div className="flex items-center gap-1">
                               {message.is_read ? (
-                                <div className="flex items-center gap-0.5">
+                                <div className="flex items-center gap-0.5 text-sky-500">
                                   <Check className="w-3 h-3" />
                                   <Check className="w-3 h-3 -ml-1" />
                                 </div>
                               ) : (
-                                <Check className="w-3 h-3" />
+                                <div className="flex items-center gap-0.5 opacity-70">
+                                  <Check className="w-3 h-3" />
+                                </div>
                               )}
                             </div>
                           )}
@@ -3219,6 +3213,30 @@ export default function ChatPage({ setComponent, campaignId, creatorId }: ChatPa
           </div>
 
           {}
+          {typingUsers.size > 0 && (
+            <div className="px-4 pb-10 flex items-center gap-2 text-xs text-slate-600 dark:text-slate-300">
+              <div className="flex space-x-1">
+                <div
+                  className="w-2 h-2 bg-pink-500 rounded-full animate-bounce"
+                  style={{ animationDelay: "0ms" }}
+                ></div>
+                <div
+                  className="w-2 h-2 bg-pink-500 rounded-full animate-bounce"
+                  style={{ animationDelay: "150ms" }}
+                ></div>
+                <div
+                  className="w-2 h-2 bg-pink-500 rounded-full animate-bounce"
+                  style={{ animationDelay: "300ms" }}
+                ></div>
+              </div>
+              <span>
+                {Array.from(typingUsers).length === 1
+                  ? `${Array.from(typingUsers)[0]} está digitandoo...`
+                  : `${Array.from(typingUsers).join(", ")} estão digitando...`}
+              </span>
+            </div>
+          )}
+
           <form
             className={`flex items-end gap-3 px-3 sm:px-4 py-3 border-t bg-background transition-colors ${
               dragActive ? 'bg-pink-50 dark:bg-pink-900/10' : ''
@@ -3354,33 +3372,6 @@ export default function ChatPage({ setComponent, campaignId, creatorId }: ChatPa
                 onKeyUp={handleKeyUp}
                 onBlur={handleInputBlur}
               />
-
-              {}
-              {typingUsers.size > 0 && (
-                <div className="absolute bottom-12 left-0 right-0 flex items-center gap-2 px-4 py-2">
-                  <div className="flex items-center gap-2">
-                    <div className="flex space-x-1">
-                      <div
-                        className="w-2 h-2 bg-pink-500 rounded-full animate-bounce"
-                        style={{ animationDelay: "0ms" }}
-                      ></div>
-                      <div
-                        className="w-2 h-2 bg-pink-500 rounded-full animate-bounce"
-                        style={{ animationDelay: "150ms" }}
-                      ></div>
-                      <div
-                        className="w-2 h-2 bg-pink-500 rounded-full animate-bounce"
-                        style={{ animationDelay: "300ms" }}
-                      ></div>
-                    </div>
-                    <span className="text-sm text-slate-900 dark:text-white">
-                      {Array.from(typingUsers).length === 1
-                        ? `${Array.from(typingUsers)[0]} está digitando...`
-                        : `${Array.from(typingUsers).join(", ")} estão digitando...`}
-                    </span>
-                  </div>
-                </div>
-              )}
             </div>
             <Button
               type="submit"
