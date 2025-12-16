@@ -48,6 +48,7 @@ const CreatorSignUp = () => {
   const systemTheme = useSystemTheme();
   const isDarkMode = theme === "dark" || (theme === "system" && systemTheme);
   const [authType, setAuthType] = useState("signin");
+  const [signUpStep, setSignUpStep] = useState<1 | 2>(1);
   const [isNewRegistration, setIsNewRegistration] = useState(false);
   const [showRestorationModal, setShowRestorationModal] = useState(false);
   const [restorationData, setRestorationData] = useState<any>(null);
@@ -57,10 +58,10 @@ const CreatorSignUp = () => {
   const dispatch = useDispatch<AppDispatch>();
   const { loginType } = useParams<{ loginType: string }>();
   const { navigateToRoleDashboard, navigateToStudentVerification, navigateToSubscription } = useRoleNavigation();
-  
-  
+
+
   const isMountedRef = useRef(true);
-  
+
   const { isSigningUp, isLoading, error, isAuthenticated, user } = useSelector((state: RootState) => state.auth);
 
   const form = useForm<SignUpFormData>({
@@ -75,7 +76,7 @@ const CreatorSignUp = () => {
     mode: "onChange",
   });
 
-  
+
   const whatsappInputRef = useRef<HTMLInputElement | null>(null);
   const itiRef = useRef<any>(null);
   const [isPhoneValid, setIsPhoneValid] = useState(true);
@@ -83,23 +84,23 @@ const CreatorSignUp = () => {
   const [dialCode, setDialCode] = useState("+55");
 
   const formatBRProgressive = (digits: string): string => {
-    
+
     const d = digits.replace(/\D/g, "");
     if (d.length <= 2) return `(${d}`;
-    if (d.length <= 6) return `(${d.slice(0,2)}) ${d.slice(2)}`;
-    if (d.length <= 10) return `(${d.slice(0,2)}) ${d.slice(2,6)}-${d.slice(6)}`;
-    return `(${d.slice(0,2)}) ${d.slice(2,7)}-${d.slice(7,11)}`;
+    if (d.length <= 6) return `(${d.slice(0, 2)}) ${d.slice(2)}`;
+    if (d.length <= 10) return `(${d.slice(0, 2)}) ${d.slice(2, 6)}-${d.slice(6)}`;
+    return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7, 11)}`;
   };
 
   useLayoutEffect(() => {
-    
+
     if (authType !== "signup") return;
 
     const onCountryChange = () => {
       try {
         const data = itiRef.current?.getSelectedCountryData?.();
         if (data?.dialCode) setDialCode(`+${data.dialCode}`);
-      } catch {}
+      } catch { }
       setTimeout(() => {
         const e164 = itiRef.current?.getNumber?.() || "";
         setPhonePreviewE164(e164);
@@ -112,7 +113,7 @@ const CreatorSignUp = () => {
       const inputEl = whatsappInputRef.current;
       const raw = inputEl?.value || "";
 
-      
+
       const utils = (window as any)?.intlTelInputUtils;
       if (utils && itiRef.current?.getNumber) {
         try {
@@ -125,9 +126,9 @@ const CreatorSignUp = () => {
               inputEl.setSelectionRange(len, len);
             }
           }
-        } catch {}
+        } catch { }
       } else {
-        
+
         try {
           const iso2 = itiRef.current?.getSelectedCountryData?.()?.iso2;
           if (iso2 === 'br' && inputEl) {
@@ -142,13 +143,13 @@ const CreatorSignUp = () => {
               }
             }
           }
-        } catch {}
+        } catch { }
       }
 
       const currentVal = inputEl?.value || raw;
       form.setValue("whatsapp", currentVal, { shouldValidate: false, shouldDirty: true });
 
-      
+
       const digits = currentVal.replace(/\D/g, "");
       const valid = digits.length === 0
         ? true
@@ -164,7 +165,7 @@ const CreatorSignUp = () => {
     const ensureItiAndListeners = () => {
       const el = whatsappInputRef.current;
       if (!el) return;
-      
+
       if (!el.parentElement?.classList.contains("iti")) {
         itiRef.current = intlTelInput(el, {
           initialCountry: "br",
@@ -179,9 +180,9 @@ const CreatorSignUp = () => {
         try {
           const data = itiRef.current?.getSelectedCountryData?.();
           if (data?.dialCode) setDialCode(`+${data.dialCode}`);
-        } catch {}
+        } catch { }
       }
-      
+
       if (!(el as any).dataset?.itiListenersAttached) {
         el.addEventListener("countrychange", onCountryChange);
         el.addEventListener("input", onInput);
@@ -190,7 +191,7 @@ const CreatorSignUp = () => {
       }
     };
 
-    
+
     ensureItiAndListeners();
     const t1 = setTimeout(ensureItiAndListeners, 0);
     const t2 = setTimeout(ensureItiAndListeners, 150);
@@ -211,7 +212,7 @@ const CreatorSignUp = () => {
         clearTimeout(t3);
         cancelAnimationFrame(raf);
         itiRef.current?.destroy?.();
-      } catch {}
+      } catch { }
     };
   }, [authType]);
 
@@ -219,61 +220,61 @@ const CreatorSignUp = () => {
     if (loginType === "login") setAuthType("signin");
   }, [loginType])
 
-  
+
   useEffect(() => {
     if (role === "creator" && location.pathname === "/signup/creator") {
       setAuthType("signup");
     }
   }, [role, location.pathname])
 
-  
+
   useEffect(() => {
     return () => {
       isMountedRef.current = false;
-      
+
       dispatch(clearError());
     };
   }, [dispatch]);
 
-  
+
   useEffect(() => {
-    
+
     dispatch(resetLoadingStates());
   }, [dispatch]);
 
 
-  
+
   useEffect(() => {
     if (isAuthenticated && user) {
-      
+
       const timeoutId = setTimeout(() => {
-        
+
         if (user.isStudent && user.role === 'creator') {
           navigateToStudentVerification();
         } else if (isNewRegistration && user.role === 'creator') {
-          
+
           const redirectTo = location.state?.redirectTo;
           if (redirectTo) {
-            
-            const pendingCheckoutSessionId = location.state?.pendingCheckoutSessionId || 
-                                           localStorage.getItem('pending_checkout_session_id');
+
+            const pendingCheckoutSessionId = location.state?.pendingCheckoutSessionId ||
+              localStorage.getItem('pending_checkout_session_id');
             if (pendingCheckoutSessionId) {
-              
+
               localStorage.setItem('pending_checkout_session_id', pendingCheckoutSessionId);
               localStorage.setItem('pending_checkout_success', 'true');
             }
             navigate(redirectTo, { replace: true });
           } else {
-            
+
             navigateToSubscription();
           }
         } else {
-          
+
           const from = location.state?.from?.pathname;
           if (from) {
-            
-            const pendingCheckoutSessionId = location.state?.pendingCheckoutSessionId || 
-                                           localStorage.getItem('pending_checkout_session_id');
+
+            const pendingCheckoutSessionId = location.state?.pendingCheckoutSessionId ||
+              localStorage.getItem('pending_checkout_session_id');
             if (pendingCheckoutSessionId) {
               localStorage.setItem('pending_checkout_session_id', pendingCheckoutSessionId);
               localStorage.setItem('pending_checkout_success', 'true');
@@ -283,28 +284,29 @@ const CreatorSignUp = () => {
             navigateToRoleDashboard(user.role);
           }
         }
-      }, 100); 
+      }, 100);
 
       return () => clearTimeout(timeoutId);
     }
   }, [isAuthenticated, user, role, navigateToRoleDashboard, navigateToStudentVerification, navigateToSubscription, location, isNewRegistration, navigate]);
 
-  
+
   useEffect(() => {
     if (error) {
       dispatch(clearError());
     }
   }, [authType, dispatch]);
 
-  
+
   const handleAuthTypeChange = (newAuthType: string) => {
-    
+
     if (isSigningUp || isLoading) {
       dispatch(resetLoadingStates());
     }
-    
+
     setAuthType(newAuthType);
-    setIsNewRegistration(false); 
+    setSignUpStep(1);
+    setIsNewRegistration(false);
     form.reset({
       name: "",
       email: "",
@@ -313,20 +315,20 @@ const CreatorSignUp = () => {
       confirmPassword: "",
       isStudent: false,
     });
-    
-    
+
+
     dispatch(clearError());
   };
 
-  
+
   const onSignUp = async (data: SignUpFormData) => {
     try {
-      
+
       if (isSigningUp) {
         return;
       }
 
-      
+
       const utils = (window as any)?.intlTelInputUtils;
       let e164 = itiRef.current?.getNumber
         ? (utils ? itiRef.current.getNumber(utils.numberFormat.E164) : itiRef.current.getNumber())
@@ -335,7 +337,7 @@ const CreatorSignUp = () => {
         e164 = `+${String(e164).replace(/[^\d]/g, '')}`;
       }
       let digitsE164 = String(e164 || '').replace(/\D/g, '');
-      
+
       if (!e164 || !E164_REGEX.test(String(e164))) {
         try {
           const selected = itiRef.current?.getSelectedCountryData?.();
@@ -347,8 +349,8 @@ const CreatorSignUp = () => {
             e164 = builtFallback;
             digitsE164 = String(e164).replace(/\D/g, '');
           }
-          
-        } catch {}
+
+        } catch { }
       }
       if (!(isPhoneValid || digitsE164.length >= 11)) {
         toast.error("Insira um WhatsApp válido. Dica: use (11) 99999-9999 (o DDI é pela bandeira)");
@@ -364,64 +366,64 @@ const CreatorSignUp = () => {
         isStudent: data.isStudent,
         role: (role as 'creator' | 'brand') || 'creator',
       };
-      
 
-      
+
+
       const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error('Request timeout - please try again')), 30000); 
+        setTimeout(() => reject(new Error('Request timeout - please try again')), 30000);
       });
 
       const response = await Promise.race([
         dispatch(signupUser(signupData)).unwrap(),
         timeoutPromise
       ]) as any;
-      
-      
+
+
       if (!isMountedRef.current) return;
-      
+
       if (response.user !== null) {
         toast.success("Conta criada com sucesso! Você foi automaticamente logado.");
         toast.message("Verify Email");
-        setIsNewRegistration(true); 
-        
-        
-        
+        setIsNewRegistration(true);
+
+
+
         if (response.token) {
-          
+
           dispatch(loginSuccess({
             user: response.user,
             token: response.token
           }));
         }
       }
-      
+
     } catch (error: any) {
-      
+
       if (!isMountedRef.current) return;
-      
-      
+
+
       dispatch(clearError());
-      
-      
+
+
       if (error.message === 'Request timeout - please try again') {
         toast.error("A solicitação demorou muito para responder. Tente novamente.");
       }
-      
+
       else if (error.response?.status === 429) {
         const retryAfter = error.response?.data?.retry_after || 60;
         const minutes = Math.ceil(retryAfter / 60);
         const errorMessage = `Muitas tentativas de registro. Tente novamente em ${minutes} minuto(s).`;
         toast.error(errorMessage);
-      } 
-      
+      }
+
       else if (error.code === 'NETWORK_ERROR' || error.message === 'Network Error') {
         toast.error("Erro de conexão. Verifique sua internet e tente novamente.");
       }
-      
+
       else if (error.response?.status >= 500) {
         toast.error("Erro interno do servidor. Tente novamente em alguns minutos.");
       }
-      
+
       else if (error.response?.status === 422) {
         const errors = error.response?.data?.errors;
         if (errors && typeof errors === 'object') {
@@ -430,12 +432,12 @@ const CreatorSignUp = () => {
             const msgs = errors[key];
             if (Array.isArray(msgs) && msgs.length > 0) {
               parts.push(`${key}: ${msgs[0]}`);
-              
+
               try {
                 if (key === 'email' || key === 'name' || key === 'password' || key === 'password_confirmation' || key === 'whatsapp') {
                   form.setError(key as any, { type: 'server', message: msgs[0] });
                 }
-              } catch {}
+              } catch { }
             }
           }
           if (parts.length > 0) {
@@ -449,22 +451,22 @@ const CreatorSignUp = () => {
           toast.error(errorMessage);
         }
       }
-      
+
       else if (error?.type === 'account_removed_restorable') {
         setRestorationData(error);
         setShowRestorationModal(true);
         return;
       }
-      
+
       else {
         const errorMessage = error.response?.data?.message || error.message || "Erro ao criar conta. Tente novamente.";
         toast.error(errorMessage);
       }
-      
+
     }
   };
 
-  
+
   const onSignIn = async (data: SignInFormData) => {
     try {
       const loginData = {
@@ -472,22 +474,22 @@ const CreatorSignUp = () => {
         password: data.password,
       };
 
-      
+
       const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error('Request timeout - please try again')), 30000); 
+        setTimeout(() => reject(new Error('Request timeout - please try again')), 30000);
       });
 
       const response = await Promise.race([
         dispatch(loginUser(loginData)).unwrap(),
         timeoutPromise
       ]) as any;
-      
-      
+
+
       if (!isMountedRef.current) return;
-      
+
       if (response.user !== null) {
         toast.success("Você fez login com sucesso.");
-        
+
       }
     } catch (error: any) {
       if (error === 'account_removed_restorable' || error?.type === 'account_removed_restorable') {
@@ -495,42 +497,42 @@ const CreatorSignUp = () => {
         setShowRestorationModal(true);
         return;
       }
-      
+
       if (!isMountedRef.current) return;
-      
-      
+
+
       if (error.message === 'Request timeout - please try again') {
         toast.error("A solicitação demorou muito para responder. Tente novamente.");
       }
-      
+
       else if (error.response?.status === 429) {
         const retryAfter = error.response?.data?.retry_after || 60;
         const minutes = Math.ceil(retryAfter / 60);
         const errorMessage = `Muitas tentativas de login. Tente novamente em ${minutes} minuto(s).`;
         toast.error(errorMessage);
-      } 
-      
+      }
+
       else if (error.code === 'NETWORK_ERROR' || error.message === 'Network Error') {
         toast.error("Erro de conexão. Verifique sua internet e tente novamente.");
       }
-      
+
       else if (error.response?.status >= 500) {
         toast.error("Erro interno do servidor. Tente novamente em alguns minutos.");
       }
-      
+
       else if (error.response?.status === 422) {
-        
+
         let errorMessage = error.response?.data?.message;
-        
+
         if (!errorMessage && error.response?.data?.errors) {
-          
+
           const errors = error.response.data.errors;
           if (errors.email && Array.isArray(errors.email)) {
             errorMessage = errors.email[0];
           } else if (errors.email) {
             errorMessage = errors.email;
           } else {
-            
+
             const firstErrorKey = Object.keys(errors)[0];
             if (firstErrorKey) {
               const firstError = errors[firstErrorKey];
@@ -538,24 +540,24 @@ const CreatorSignUp = () => {
             }
           }
         }
-        
-        
+
+
         if (errorMessage && errorMessage.includes('bloqueada')) {
           toast.error(errorMessage);
         } else {
           toast.error(errorMessage || "Dados inválidos. Verifique os campos e tente novamente.");
         }
       }
-      
+
       else {
         let errorMessage = error.response?.data?.message || error.message;
-        
-        
+
+
         if (typeof error === 'string') {
           errorMessage = error;
         }
-        
-        
+
+
         if (errorMessage && errorMessage.includes('bloqueada')) {
           toast.error(errorMessage);
         } else {
@@ -568,18 +570,18 @@ const CreatorSignUp = () => {
 
   const canonical = typeof window !== "undefined" ? window.location.href : "";
   const structuredData = {
-      "@context": "https://schema.org",
-      "@type": "ItemList",
+    "@context": "https://schema.org",
+    "@type": "ItemList",
   };
 
   return (
 
     <>
       <Helmet>
-          <title>Nexa - Entrar</title>
-          <meta name="description" content="Browse Nexa guides filtered by brand and creator. Watch embedded videos and manage guides." />
-          {canonical && <link rel="canonical" href={canonical} />}
-          <script type="application/ld+json">{JSON.stringify(structuredData)}</script>
+        <title> </title>
+        <meta name="description" content="Browse Nexa guides filtered by brand and creator. Watch embedded videos and manage guides." />
+        {canonical && <link rel="canonical" href={canonical} />}
+        <script type="application/ld+json">{JSON.stringify(structuredData)}</script>
       </Helmet>
       <div className="min-h-screen flex items-center justify-center bg-muted dark:bg-[#171717] transition-colors duration-300 relative">
         <div className="absolute top-4 right-4">
@@ -599,7 +601,6 @@ const CreatorSignUp = () => {
             {authType === "signup" ? "Crie sua conta para começar" : "Entre na sua conta"}
           </p>
 
-          {}
           {error && (
             <Alert className="w-full border-red-200 bg-red-50 dark:bg-red-900/20 dark:border-red-800">
               <AlertDescription className="text-red-600 dark:text-red-400">
@@ -608,7 +609,6 @@ const CreatorSignUp = () => {
             </Alert>
           )}
 
-          {}
           <div className="flex w-full mb-2 border border-[#E2E2E2] p-1 rounded-full">
             <button
               className={`flex-1 py-2 rounded-full text-base font-semibold transition-colors ${authType === "signin" ? "bg-[#E91E63] text-white" : "bg-background text-foreground"} ${(isSigningUp || isLoading) ? "opacity-50 cursor-not-allowed" : ""}`}
@@ -673,15 +673,15 @@ const CreatorSignUp = () => {
                       <Checkbox disabled={isLoading} />
                       <span className="text-muted-foreground text-sm">Lembrar-me</span>
                     </div>
-                    <span 
-                      className="font-bold text-[#E91E63] dark:text-[#E91E63] hover:underline cursor-pointer text-sm" 
+                    <span
+                      className="font-bold text-[#E91E63] dark:text-[#E91E63] hover:underline cursor-pointer text-sm"
                       onClick={() => navigate("/forgot-password")}
                     >
                       Esqueceu a senha?
                     </span>
                   </div>
-                  <Button 
-                    type="submit" 
+                  <Button
+                    type="submit"
                     className="w-full bg-[#E91E63] hover:bg-pink-600 text-white mt-2 rounded-full disabled:opacity-50 disabled:cursor-not-allowed"
                     disabled={isLoading}
                   >
@@ -710,8 +710,8 @@ const CreatorSignUp = () => {
               </GoogleOAuthButton>
               <div className="text-center w-full mt-2 flex justify-center gap-2">
                 <span className="text-muted-foreground">Não tem uma conta? </span>
-                <div 
-                  onClick={() => handleAuthTypeChange("signup")} 
+                <div
+                  onClick={() => handleAuthTypeChange("signup")}
                   className="font-semibold text-pink-500 hover:underline cursor-pointer"
                 >
                   Criar conta
@@ -720,171 +720,218 @@ const CreatorSignUp = () => {
             </>
           ) : (
             <>
+              <div className="w-full flex items-center gap-2 mb-3">
+                <div className={`flex-1 flex items-center justify-center py-2 rounded-full text-sm font-semibold border ${signUpStep === 1 ? "bg-[#E91E63] text-white border-[#E91E63]" : "bg-background text-foreground border-border"}`}>
+                  <span className="mr-2 rounded-full w-6 h-6 flex items-center justify-center border border-current">
+                    1
+                  </span>
+                  Dados pessoais
+                </div>
+                <div className={`flex-1 flex items-center justify-center py-2 rounded-full text-sm font-semibold border ${signUpStep === 2 ? "bg-[#E91E63] text-white border-[#E91E63]" : "bg-background text-foreground border-border"}`}>
+                  <span className="mr-2 rounded-full w-6 h-6 flex items-center justify-center border border-current">
+                    2
+                  </span>
+                  Senha
+                </div>
+              </div>
               <Form {...form}>
                 <form onSubmit={form.handleSubmit(onSignUp)} className="w-full flex flex-col gap-3">
-                  <FormField
-                    control={form.control}
-                    name="name"
-                    rules={{
-                      required: "Nome é obrigatório",
-                      minLength: {
-                        value: 5,
-                        message: "Nome deve ter pelo menos 5 caracteres"
-                      },
-                      maxLength: {
-                        value: 30,
-                        message: "Nome deve ter menos de 15 caracteres"
-                      },
-                      pattern: {
-                        value: /\s/,
-                        message: "Nome deve conter pelo menos um espaço"
-                      }
-                    }}
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Nome</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Seu nome" {...field} disabled={isSigningUp} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="email"
-                    rules={{
-                      required: "E-mail é obrigatório",
-                      pattern: {
-                        value: /@/,
-                        message: "E-mail deve conter o símbolo @"
-                      }
-                    }}
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>E-mail</FormLabel>
-                        <FormControl>
-                          <Input placeholder="seu@email.com" type="email" {...field} disabled={isSigningUp} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="whatsapp"
-                    rules={{
-                      validate: (value) => {
-                        if (!value) return true;
-                        const raw = String(value);
-                        const digits = raw.replace(/\D/g, "");
-                        const utils = (window as any)?.intlTelInputUtils;
-                        const e164Try = itiRef.current?.getNumber
-                          ? (utils ? itiRef.current.getNumber(utils.numberFormat.E164) : itiRef.current.getNumber())
-                          : raw;
-                        const digitsE164 = String(e164Try || "").replace(/\D/g, "");
-                        const pluginValid = itiRef.current?.isValidNumber ? itiRef.current.isValidNumber() : false;
-                        const fallbackValid = digits.length >= 10 || digitsE164.length >= 11 || E164_REGEX.test(String(e164Try || ""));
-                        return (isPhoneValid || pluginValid || fallbackValid) || "Insira um WhatsApp válido. Dica: use (11) 99999-9999 (o DDI é pela bandeira)";
-                      }
-                    }}
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>WhatsApp</FormLabel>
-                        <FormControl>
-                          <Input
-                            placeholder="(00) 00000-0000"
-                            type="tel"
-                            {...field}
-                            
-                            ref={(el) => {
-                              whatsappInputRef.current = el;
-                              
-                              if (typeof field.ref === 'function') field.ref(el);
-                              else (field as any).ref = el;
-                            }}
-                            disabled={isSigningUp}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="password"
-                    rules={{
-                      required: "Senha é obrigatória",
-                      pattern: {
-                        value: /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*(),.?":{}|<>])[A-Za-z\d!@#$%^&*(),.?":{}|<>]+$/,
-                        message: "Senha deve conter letras maiúsculas, minúsculas, números e caracteres especiais"
-                      }
-                    }}
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Senha</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Crie uma senha segura" type="password" {...field} disabled={isSigningUp} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="confirmPassword"
-                    rules={{
-                      required: "Por favor, confirme sua senha",
-                      validate: (value) => {
-                        const password = form.getValues("password");
-                        return value === password || "Senhas não coincidem";
-                      }
-                    }}
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Confirmar Senha</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Repita a senha" type="password" {...field} disabled={isSigningUp} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  {role === "creator" && (
-                    <FormField
-                      control={form.control}
-                      name="isStudent"
-                      render={({ field }) => (
-                        <FormItem className="flex flex-row items-center space-x-2 space-y-0">
-                          <FormControl>
-                            <Checkbox 
-                              checked={field.value} 
-                              onCheckedChange={field.onChange}
-                              disabled={isSigningUp}
-                            />
-                          </FormControl>
-                          <FormLabel className="font-normal">
-                            Sou um aluno e quero verificar meu status
-                          </FormLabel>
-                        </FormItem>
+                  {signUpStep === 1 && (
+                    <>
+                      <FormField
+                        control={form.control}
+                        name="name"
+                        rules={{
+                          required: "Nome é obrigatório",
+                          minLength: {
+                            value: 5,
+                            message: "Nome deve ter pelo menos 5 caracteres"
+                          },
+                          maxLength: {
+                            value: 30,
+                            message: "Nome deve ter menos de 15 caracteres"
+                          },
+                          pattern: {
+                            value: /\s/,
+                            message: "Nome deve conter pelo menos um espaço"
+                          }
+                        }}
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Nome</FormLabel>
+                            <FormControl>
+                              <Input placeholder="Seu nome" {...field} disabled={isSigningUp} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="email"
+                        rules={{
+                          required: "E-mail é obrigatório",
+                          pattern: {
+                            value: /@/,
+                            message: "E-mail deve conter o símbolo @"
+                          }
+                        }}
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>E-mail</FormLabel>
+                            <FormControl>
+                              <Input placeholder="seu@email.com" type="email" {...field} disabled={isSigningUp} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="whatsapp"
+                        rules={{
+                          validate: (value) => {
+                            if (!value) return true;
+                            const raw = String(value);
+                            const digits = raw.replace(/\D/g, "");
+                            const utils = (window as any)?.intlTelInputUtils;
+                            const e164Try = itiRef.current?.getNumber
+                              ? (utils ? itiRef.current.getNumber(utils.numberFormat.E164) : itiRef.current.getNumber())
+                              : raw;
+                            const digitsE164 = String(e164Try || "").replace(/\D/g, "");
+                            const pluginValid = itiRef.current?.isValidNumber ? itiRef.current.isValidNumber() : false;
+                            const fallbackValid = digits.length >= 10 || digitsE164.length >= 11 || E164_REGEX.test(String(e164Try || ""));
+                            return (isPhoneValid || pluginValid || fallbackValid) || "Insira um WhatsApp válido. Dica: use (11) 99999-9999 (o DDI é pela bandeira)";
+                          }
+                        }}
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>WhatsApp</FormLabel>
+                            <FormControl>
+                              <Input
+                                placeholder="(00) 00000-0000"
+                                type="tel"
+                                {...field}
+                                ref={(el) => {
+                                  whatsappInputRef.current = el;
+                                  if (typeof field.ref === "function") field.ref(el);
+                                  else (field as any).ref = el;
+                                }}
+                                disabled={isSigningUp}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      {role === "creator" && (
+                        <FormField
+                          control={form.control}
+                          name="isStudent"
+                          render={({ field }) => (
+                            <FormItem className="flex flex-row items-center space-x-2 space-y-0">
+                              <FormControl>
+                                <Checkbox
+                                  checked={field.value}
+                                  onCheckedChange={field.onChange}
+                                  disabled={isSigningUp}
+                                />
+                              </FormControl>
+                              <FormLabel className="font-normal">
+                                Sou um aluno e quero verificar meu status
+                              </FormLabel>
+                            </FormItem>
+                          )}
+                        />
                       )}
-                    />
+                    </>
                   )}
-
-                  <Button 
-                    type="submit" 
-                    className="w-full bg-[#E91E63] hover:bg-pink-600 text-white mt-2 rounded-full disabled:opacity-50 disabled:cursor-not-allowed"
-                    disabled={isSigningUp}
-                  >
-                    {isSigningUp ? (
-                      <div className="flex items-center gap-2">
-                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                        Criando conta...
-                      </div>
-                    ) : (
-                      "Criar conta"
-                    )}
-                  </Button>
+                  {signUpStep === 2 && (
+                    <>
+                      <FormField
+                        control={form.control}
+                        name="password"
+                        rules={{
+                          required: "Senha é obrigatória",
+                          pattern: {
+                            value: /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*(),.?":{}|<>])[A-Za-z\d!@#$%^&*(),.?":{}|<>]+$/,
+                            message: "Senha deve conter letras maiúsculas, minúsculas, números e caracteres especiais"
+                          }
+                        }}
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Senha</FormLabel>
+                            <FormControl>
+                              <Input placeholder="Crie uma senha segura" type="password" {...field} disabled={isSigningUp} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="confirmPassword"
+                        rules={{
+                          required: "Por favor, confirme sua senha",
+                          validate: (value) => {
+                            const password = form.getValues("password");
+                            return value === password || "Senhas não coincidem";
+                          }
+                        }}
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Confirmar Senha</FormLabel>
+                            <FormControl>
+                              <Input placeholder="Repita a senha" type="password" {...field} disabled={isSigningUp} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </>
+                  )}
+                  {signUpStep === 1 && (
+                    <Button
+                      type="button"
+                      className="w-full bg-[#E91E63] hover:bg-pink-600 text-white mt-2 rounded-full disabled:opacity-50 disabled:cursor-not-allowed"
+                      disabled={isSigningUp}
+                      onClick={async () => {
+                        const ok = await form.trigger(["name", "email", "whatsapp"]);
+                        if (ok) {
+                          setSignUpStep(2);
+                        }
+                      }}
+                    >
+                      Próximo
+                    </Button>
+                  )}
+                  {signUpStep === 2 && (
+                    <div className="flex w-full gap-2 mt-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="flex-1 rounded-full"
+                        disabled={isSigningUp}
+                        onClick={() => setSignUpStep(1)}
+                      >
+                        Voltar
+                      </Button>
+                      <Button
+                        type="submit"
+                        className="flex-1 bg-[#E91E63] hover:bg-pink-600 text-white rounded-full disabled:opacity-50 disabled:cursor-not-allowed"
+                        disabled={isSigningUp}
+                      >
+                        {isSigningUp ? (
+                          <div className="flex items-center gap-2">
+                            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                            Criando conta...
+                          </div>
+                        ) : (
+                          "Criar conta"
+                        )}
+                      </Button>
+                    </div>
+                  )}
                 </form>
               </Form>
               <div className="flex items-center w-full gap-2 my-2">
@@ -894,7 +941,7 @@ const CreatorSignUp = () => {
               </div>
               <GoogleOAuthButton
                 role={role as 'creator' | 'brand'}
-                isStudent={form.watch('isStudent')}
+                isStudent={form.watch("isStudent")}
                 disabled={isSigningUp}
                 className="py-2 text-base font-medium rounded-full"
               >
@@ -902,8 +949,8 @@ const CreatorSignUp = () => {
               </GoogleOAuthButton>
               <div className="text-center w-full mt-2 flex justify-center gap-2">
                 <span className="text-muted-foreground">Já tem uma conta? </span>
-                <div 
-                  onClick={() => handleAuthTypeChange("signin")} 
+                <div
+                  onClick={() => handleAuthTypeChange("signin")}
                   className="font-semibold text-pink-500 hover:underline cursor-pointer"
                 >
                   Entrar
@@ -913,7 +960,7 @@ const CreatorSignUp = () => {
           )}
         </div>
       </div>
-      {}
+      { }
       <AccountRestorationModal
         isOpen={showRestorationModal}
         onClose={() => {

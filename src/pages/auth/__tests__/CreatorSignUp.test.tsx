@@ -78,8 +78,6 @@ describe('CreatorSignUp', () => {
       expect(screen.getByLabelText('Nome')).toBeInTheDocument()
       expect(screen.getByLabelText('E-mail')).toBeInTheDocument()
       expect(screen.getByLabelText('WhatsApp')).toBeInTheDocument()
-      expect(screen.getByLabelText('Senha')).toBeInTheDocument()
-      expect(screen.getByLabelText('Confirmar Senha')).toBeInTheDocument()
     })
 
     it('renders the student checkbox when role is creator', () => {
@@ -127,12 +125,15 @@ describe('CreatorSignUp', () => {
       const nameInput = screen.getByLabelText('Nome')
       const emailInput = screen.getByLabelText('E-mail')
       const whatsappInput = screen.getByLabelText('WhatsApp')
-      const passwordInput = screen.getByLabelText('Senha')
-      const confirmPasswordInput = screen.getByLabelText('Confirmar Senha')
 
       await user.type(nameInput, 'João Silva')
       await user.type(emailInput, 'joao@example.com')
       await user.type(whatsappInput, '(11) 99999-9999')
+      await user.click(screen.getByRole('button', { name: 'Próximo' }))
+
+      const passwordInput = screen.getByLabelText('Senha')
+      const confirmPasswordInput = screen.getByLabelText('Confirmar Senha')
+
       await user.type(passwordInput, 'Password123!')
       await user.type(confirmPasswordInput, 'Password123!')
 
@@ -241,6 +242,11 @@ describe('CreatorSignUp', () => {
         </TestWrapper>
       )
 
+      await user.type(screen.getByLabelText('Nome'), 'João Silva')
+      await user.type(screen.getByLabelText('E-mail'), 'joao@example.com')
+      await user.type(screen.getByLabelText('WhatsApp'), '(11) 99999-9999')
+      await user.click(screen.getByRole('button', { name: 'Próximo' }))
+
       const passwordInput = screen.getByLabelText('Senha')
       await user.type(passwordInput, 'weak')
       await user.tab()
@@ -257,6 +263,11 @@ describe('CreatorSignUp', () => {
           <CreatorSignUp />
         </TestWrapper>
       )
+
+      await user.type(screen.getByLabelText('Nome'), 'João Silva')
+      await user.type(screen.getByLabelText('E-mail'), 'joao@example.com')
+      await user.type(screen.getByLabelText('WhatsApp'), '(11) 99999-9999')
+      await user.click(screen.getByRole('button', { name: 'Próximo' }))
 
       const passwordInput = screen.getByLabelText('Senha')
       const confirmPasswordInput = screen.getByLabelText('Confirmar Senha')
@@ -285,15 +296,12 @@ describe('CreatorSignUp', () => {
       await user.type(screen.getByLabelText('Nome'), 'João Silva')
       await user.type(screen.getByLabelText('E-mail'), 'joao@example.com')
       await user.type(screen.getByLabelText('WhatsApp'), '(11) 99999-9999')
+      await user.click(screen.getByRole('button', { name: 'Próximo' }))
       await user.type(screen.getByLabelText('Senha'), 'Password123!')
       await user.type(screen.getByLabelText('Confirmar Senha'), 'Password123!')
       await user.click(screen.getByRole('checkbox'))
 
-      
-      const form = screen.getByLabelText('Nome').closest('form')
-      const submitButton = form?.querySelector('button[type="submit"]')
-      expect(submitButton).toBeInTheDocument()
-      await user.click(submitButton!)
+      await user.click(screen.getByRole('button', { name: 'Criar conta' }))
 
       await waitFor(() => {
         expect(mockNavigate).toHaveBeenCalledWith('/student-verify')
@@ -313,14 +321,11 @@ describe('CreatorSignUp', () => {
       await user.type(screen.getByLabelText('Nome'), 'Maria Silva')
       await user.type(screen.getByLabelText('E-mail'), 'maria@example.com')
       await user.type(screen.getByLabelText('WhatsApp'), '(11) 88888-8888')
+      await user.click(screen.getByRole('button', { name: 'Próximo' }))
       await user.type(screen.getByLabelText('Senha'), 'Password456!')
       await user.type(screen.getByLabelText('Confirmar Senha'), 'Password456!')
 
-      
-      const form = screen.getByLabelText('Nome').closest('form')
-      const submitButton = form?.querySelector('button[type="submit"]')
-      expect(submitButton).toBeInTheDocument()
-      await user.click(submitButton!)
+      await user.click(screen.getByRole('button', { name: 'Criar conta' }))
 
       await waitFor(() => {
         expect(mockNavigate).toHaveBeenCalledWith('/creator/dashboard')
@@ -549,6 +554,11 @@ describe('CreatorSignUp', () => {
       expect(screen.getByLabelText('Nome')).toBeInTheDocument()
       expect(screen.getByLabelText('E-mail')).toBeInTheDocument()
       expect(screen.getByLabelText('WhatsApp')).toBeInTheDocument()
+      expect(screen.queryByLabelText('Senha')).not.toBeInTheDocument()
+      expect(screen.queryByLabelText('Confirmar Senha')).not.toBeInTheDocument()
+
+      fireEvent.click(screen.getByRole('button', { name: 'Próximo' }))
+
       expect(screen.getByLabelText('Senha')).toBeInTheDocument()
       expect(screen.getByLabelText('Confirmar Senha')).toBeInTheDocument()
     })
@@ -560,8 +570,9 @@ describe('CreatorSignUp', () => {
         </TestWrapper>
       )
 
-      
-      const form = screen.getByLabelText('Nome').closest('form')
+      fireEvent.click(screen.getByRole('button', { name: 'Próximo' }))
+
+      const form = screen.getByLabelText('Senha').closest('form')
       const submitButton = form?.querySelector('button[type="submit"]')
       expect(submitButton).toBeInTheDocument()
       expect(submitButton).toHaveTextContent('Criar conta')
@@ -612,7 +623,7 @@ describe('CreatorSignUp', () => {
       )
 
       
-      await user.click(screen.getByRole('button', { name: 'Criar conta' }))
+      await user.click(screen.getByRole('button', { name: 'Próximo' }))
 
       
       await waitFor(() => {
