@@ -25,7 +25,7 @@ const CampaignLogo: React.FC<CampaignLogoProps> = ({
   if (logoUrl) {
     return (
       <div className={`${sizeClasses[size]} rounded-full bg-gradient-to-br from-pink-500 to-purple-600 flex items-center justify-center text-white font-bold overflow-hidden ${className}`}>
-        <img
+        <Image
           src={logoUrl}
           alt={`${brandName} logo`}
           className="w-full h-full object-cover"

@@ -113,7 +113,7 @@ const CampaignDetail = ({
                 const logoUrl = getCampaignLogoUrl(displayData.logo);
                 if (logoUrl) {
                   return (
-                    <img
+                    <Image
                       src={logoUrl}
                       alt={`${displayData.brand?.name || 'Campaign'} logo`}
                       className="w-full h-full object-cover"

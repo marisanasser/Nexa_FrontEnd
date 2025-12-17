@@ -7,7 +7,7 @@ export const WhyNexaSection = () => {
         <div className="grid lg:grid-cols-2 gap-8 lg:gap-12 items-center px-4 md:px-6">
           <div className="relative order-last lg:order-first">
             <div className="w-full aspect-square max-w-xl mx-auto rounded-3xl overflow-hidden">
-              <img src={WhyNexa} alt="Why NEXA UGC" className="w-full h-full object-cover" />
+              <Image src={WhyNexa} alt="Why NEXA UGC" className="w-full h-full object-cover" />
             </div>
           </div>
           <div className="space-y-4 md:space-y-6 text-center lg:text-left">

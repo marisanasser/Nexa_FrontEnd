@@ -660,7 +660,7 @@ export default function CreateCampaign() {
             </div>
             {imagePreview && (
               <div className="flex flex-col items-center mt-4">
-                <img
+                <Image
                   src={imagePreview}
                   alt="Logo Preview"
                   className="rounded-lg max-h-40 object-contain border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 shadow"

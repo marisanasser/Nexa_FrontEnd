@@ -179,15 +179,15 @@ export const EditProfile: React.FC<{
 
   const compressImage = (file: File, maxWidth: number, quality: number): Promise<File> => {
     return new Promise((resolve, reject) => {
-      const img = new Image();
-      img.onload = () => {
-        const scale = Math.min(1, maxWidth / img.width);
+      const Image = new Image();
+      Image.onload = () => {
+        const scale = Math.min(1, maxWidth / Image.width);
         const canvas = document.createElement('canvas');
-        canvas.width = Math.floor(img.width * scale);
-        canvas.height = Math.floor(img.height * scale);
+        canvas.width = Math.floor(Image.width * scale);
+        canvas.height = Math.floor(Image.height * scale);
         const ctx = canvas.getContext('2d');
         if (!ctx) return reject(new Error('Canvas não suportado'));
-        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        ctx.drawImage(Image, 0, 0, canvas.width, canvas.height);
         canvas.toBlob((blob) => {
           if (!blob) return reject(new Error('Falha ao comprimir imagem'));
           const ext = file.type === 'image/png' ? 'png' : 'jpeg';
@@ -195,16 +195,16 @@ export const EditProfile: React.FC<{
           resolve(out);
         }, file.type === 'image/png' ? 'image/png' : 'image/jpeg', quality);
       };
-      img.onerror = reject;
-      img.src = URL.createObjectURL(file);
+      Image.onerror = reject;
+      Image.src = URL.createObjectURL(file);
     });
   };
 
   
   useEffect(() => {
-    const img = (initialProfile as any)?.image;
-    if (img && typeof img === 'string') {
-      const url = getAvatarUrl(img) || img;
+    const Image = (initialProfile as any)?.image;
+    if (Image && typeof Image === 'string') {
+      const url = getAvatarUrl(Image) || Image;
       setImagePreview(url);
     }
   }, [initialProfile]);
@@ -273,7 +273,7 @@ export const EditProfile: React.FC<{
           <div className="relative w-20 h-20 sm:w-24 sm:h-24">
             <div className="w-full h-full rounded-full border-2 border-dashed border-gray-300 dark:border-gray-600 flex items-center justify-center bg-gray-50 dark:bg-gray-800 overflow-hidden">
               {imagePreview ? (
-                <img
+                <Image
                   src={imagePreview || ''}
                   alt="Profile"
                   className="object-cover w-full h-full rounded-full"

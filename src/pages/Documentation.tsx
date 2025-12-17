@@ -307,7 +307,7 @@ function GuideContent({ guide }: { guide: Guide }) {
                             Screenshots
                           </h4>
                           <div className="relative">
-                            <img
+                            <Image
                               src={step.screenshot_urls[currentScreenshot[step.id] || 0]}
                               alt={`${step.title} - Screenshot ${(currentScreenshot[step.id] || 0) + 1}`}
                               className="w-full md:max-w-2xl rounded-lg border shadow-sm"

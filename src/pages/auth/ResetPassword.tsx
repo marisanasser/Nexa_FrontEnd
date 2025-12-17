@@ -102,7 +102,7 @@ const ResetPassword: React.FC = () => {
           <ThemeToggle />
         </div>
         <div className="w-full max-w-lg bg-background rounded-xl shadow-lg p-8">
-          <img
+          <Image
             src={isDarkMode ? LightLogo : DarkLogo}
             alt="App Logo"
             className="h-6 mb-4 mx-auto"
@@ -122,7 +122,7 @@ const ResetPassword: React.FC = () => {
       </div>
 
       <div className="w-full max-w-lg bg-background rounded-xl shadow-lg p-8 flex flex-col items-center">
-        <img
+        <Image
           src={isDarkMode ? LightLogo : DarkLogo}
           alt="App Logo"
           className="h-6 mb-4 cursor-pointer"

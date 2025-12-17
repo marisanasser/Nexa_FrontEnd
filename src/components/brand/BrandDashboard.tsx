@@ -100,7 +100,7 @@ const BrandDashboard: React.FC<BrandDashboardProps> = ({ setComponent }) => {
                 className="bg-background rounded-xl shadow-sm border border-mute p-5 flex flex-col gap-3"
               >
                 <div className="flex items-center gap-3">
-                  <img
+                  <Image
                     src={c.image}
                     alt="campaign"
                     className="w-12 h-12 rounded-full object-cover border border-zinc-200 dark:border-zinc-700"
@@ -206,7 +206,7 @@ const BrandDashboard: React.FC<BrandDashboardProps> = ({ setComponent }) => {
                 className="bg-background rounded-xl shadow-sm border border-mute p-5 flex flex-col gap-3"
               >
                 <div className="flex items-center gap-3">
-                  <img
+                  <Image
                     src={c.image}
                     alt="campaign"
                     className="w-12 h-12 rounded-full object-cover border border-zinc-200 dark:border-zinc-700"

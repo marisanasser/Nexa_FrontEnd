@@ -1209,7 +1209,7 @@ export default function Chat() {
           className="relative max-w-[90vw] max-h-[90vh] flex items-center justify-center"
           onClick={(e) => e.stopPropagation()}
         >
-          <img
+          <Image
             src={imageViewer.imageUrl}
             alt={imageViewer.imageName}
             className="max-w-full max-h-full object-contain rounded-lg shadow-2xl"
@@ -1350,10 +1350,10 @@ export default function Chat() {
 
           
           try {
-            const img = new Image();
-            img.crossOrigin = "anonymous";
+            const Image = new Image();
+            Image.crossOrigin = "anonymous";
 
-            img.onload = () => {
+            Image.onload = () => {
               try {
                 const canvas = document.createElement("canvas");
                 const ctx = canvas.getContext("2d");
@@ -1363,9 +1363,9 @@ export default function Chat() {
                   return;
                 }
 
-                canvas.width = img.width;
-                canvas.height = img.height;
-                ctx.drawImage(img, 0, 0);
+                canvas.width = Image.width;
+                canvas.height = Image.height;
+                ctx.drawImage(Image, 0, 0);
 
                 const mimeType = getMimeType(fileName);
 
@@ -1409,7 +1409,7 @@ export default function Chat() {
               }
             };
 
-            img.onerror = () => {
+            Image.onerror = () => {
               console.warn("Canvas method also failed, trying direct link");
 
               
@@ -1433,7 +1433,7 @@ export default function Chat() {
               }
             };
 
-            img.src = imageUrl;
+            Image.src = imageUrl;
           } catch (error) {
             reject(error);
           }
@@ -1467,7 +1467,7 @@ export default function Chat() {
     if (message.message_type === "image") {
       return (
         <div className="space-y-2">
-          <img
+          <Image
             src={message.file_url}
             alt={message.file_name}
             className="max-w-xs rounded-lg"
@@ -2538,7 +2538,7 @@ export default function Chat() {
               {selectedFile && (
                 <div className="flex items-center gap-2 sm:gap-3 p-2 sm:p-3 bg-gradient-to-r from-pink-50 to-purple-50 dark:from-pink-900/20 dark:to-purple-900/20 rounded-xl border border-pink-200 dark:border-pink-800 shadow-sm max-w-full">
                   {filePreview ? (
-                    <img
+                    <Image
                       src={filePreview}
                       alt="Preview"
                       className="w-10 h-10 rounded-lg object-cover border border-pink-200 dark:border-pink-700"

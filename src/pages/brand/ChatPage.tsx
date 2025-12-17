@@ -2130,7 +2130,7 @@ export default function ChatPage({ setComponent, campaignId, creatorId }: ChatPa
         <div className="space-y-3">
           {message.file_url && (
             <div className="relative group">
-              <img
+              <Image
                 src={message.file_url}
                 alt={message.file_name || "Image"}
                 className="max-w-full max-h-80 rounded-xl object-cover cursor-pointer"
@@ -3273,7 +3273,7 @@ export default function ChatPage({ setComponent, campaignId, creatorId }: ChatPa
                     <div className="relative flex items-center gap-2 sm:gap-4 p-2 sm:p-3 md:p-4">
                       {filePreview ? (
                         <div className="relative">
-                          <img
+                          <Image
                             src={filePreview}
                             alt="Preview"
                             className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl object-cover border-2 border-pink-200 dark:border-pink-700 shadow-md group-hover:scale-110 transition-transform duration-300 flex-shrink-0"
@@ -3435,7 +3435,7 @@ export default function ChatPage({ setComponent, campaignId, creatorId }: ChatPa
               className="relative max-w-[90vw] max-h-[90vh] flex items-center justify-center"
               onClick={(e) => e.stopPropagation()}
             >
-              <img
+              <Image
                 src={imageViewer.imageUrl}
                 alt={imageViewer.imageName}
                 className="max-w-full max-h-full object-contain rounded-lg shadow-2xl"

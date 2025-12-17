@@ -174,7 +174,7 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({
                   const logoUrl = getCampaignLogoUrl(logoPath);
                   if (logoUrl) {
                     return (
-                      <img
+                      <Image
                         src={logoUrl}
                         alt={`${project.title} logo`}
                         className="w-16 h-16 rounded-xl object-cover border border-border cursor-pointer hover:opacity-80 transition-opacity"
@@ -323,7 +323,7 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({
                     const file = attachments[0];
                     const isImage = /\.(jpg|jpeg|png|gif|bmp|webp|mp4|mov|avi|wmv|flv|mkv|webm)$/i.test(file);
                     return isImage ? (
-                      <img
+                      <Image
                         src={`${
                           import.meta.env.VITE_BACKEND_URL ||
                           "http://localhost:8000"
@@ -367,7 +367,7 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({
                           return (
                             <div key={index} className="border rounded-lg p-2">
                               {isImage ? (
-                                <img
+                                <Image
                                   src={`${import.meta.env.VITE_BACKEND_URL || "http://localhost:8000"}${file}`}
                                   alt={`Anexo ${index + 1}`}
                                   className="w-full h-32 object-contain rounded cursor-pointer hover:opacity-80 transition-opacity"
@@ -439,7 +439,7 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({
         <DialogContent className="max-w-[95vw] max-h-[95vh] w-auto h-auto p-0 bg-black/90 border-none">
           <div className="relative w-full h-full flex items-center justify-center">
             {selectedImageUrl && (
-              <img
+              <Image
                 src={selectedImageUrl}
                 alt="Visualização ampliada"
                 className="max-w-full max-h-[95vh] object-contain"

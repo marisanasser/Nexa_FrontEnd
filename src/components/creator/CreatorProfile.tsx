@@ -500,7 +500,7 @@ const handleRefreshProfile = useCallback(async () => {
               <div className="relative">
                 <div className="w-16 h-16 rounded-full bg-purple-100 dark:bg-purple-400 flex items-center justify-center text-2xl font-bold text-purple-600 dark:text-white mb-2 overflow-hidden">
                   {displayProfile.image ? (
-                    <img
+                    <Image
                       src={getAvatarUrl(displayProfile.image)}
                       alt="Profile"
                       className="w-16 h-16 rounded-full object-cover"

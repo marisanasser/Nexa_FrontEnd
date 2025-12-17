@@ -382,7 +382,7 @@ export default function Portfolio() {
             {}
             <div className="rounded-md bg-purple-50 dark:bg-purple-900/30 text-purple-800 dark:text-purple-200 px-4 py-3 text-sm flex items-center gap-2 border border-purple-200 dark:border-purple-800">
                 <span className="font-semibold">Dica:</span>
-                <span>Um portfólio bem completo aumenta suas chances de ser aprovado! <span role="img" aria-label="rocket">🚀</span></span>
+                <span>Um portfólio bem completo aumenta suas chances de ser aprovado! <span role="Image" aria-label="rocket">🚀</span></span>
             </div>
 
             {}
@@ -393,7 +393,7 @@ export default function Portfolio() {
                         <div className="relative w-28 h-28 flex-shrink-0">
                             <div className="w-28 h-28 rounded-full border-2 border-dashed border-muted-foreground flex items-center justify-center bg-muted overflow-hidden">
                                 {getUserAvatar() ? (
-                                    <img 
+                                    <Image 
                                         src={getUserAvatar()} 
                                         alt="Profile" 
                                         className="object-cover w-full h-full rounded-full"
@@ -691,7 +691,7 @@ export default function Portfolio() {
                                                 <span className={`absolute top-2 left-2 text-white text-xs px-2 py-0.5 rounded-full ${item.media_type === 'image' ? 'bg-purple-500' : 'bg-blue-500'}`}>{item.media_type === 'image' ? 'Foto' : 'Vídeo'}</span>
                                                 {item.media_type === 'image' ? (
                                                 
-                                                    <img
+                                                    <Image
                                                        src={item.file_url || `${import.meta.env.VITE_BACKEND_URL || 'https://nexacreators.com.br'}/storage/${item.file_path}`}
                                                        alt={item.title}
                                                        className="object-cover w-full h-full rounded-md cursor-pointer"
@@ -726,7 +726,7 @@ export default function Portfolio() {
                                             <div key={`new-${idx}`} className="rounded-lg bg-background flex flex-col items-start justify-between aspect-[4/3] p-2 relative overflow-hidden group">
                                                 <span className={`absolute top-2 left-2 text-white text-xs px-2 py-0.5 rounded-full z-10 ${item.type === 'image' ? 'bg-purple-500' : 'bg-blue-500'}`}>{item.type === 'image' ? 'Foto' : 'Vídeo'}</span>
                                                 {item.type === 'image' ? (
-                                                    <img
+                                                    <Image
                                                         src={item.url}
                                                         alt="media"
                                                         className="object-cover w-full h-full rounded-md cursor-pointer"
@@ -818,7 +818,7 @@ export default function Portfolio() {
                                 <div key={`existing-${item.id}`} className="rounded-lg bg-background flex flex-col items-start justify-between aspect-[4/3] p-2 relative overflow-hidden group">
                                     <span className={`absolute top-2 left-2 text-white text-xs px-2 py-0.5 rounded-full ${item.media_type === 'image' ? 'bg-purple-500' : 'bg-blue-500'}`}>{item.media_type === 'image' ? 'Foto' : 'Vídeo'}</span>
                                     {item.media_type === 'image' ? (
-                                                    <img
+                                                    <Image
                                                        src={item.file_url || `${import.meta.env.VITE_BACKEND_URL || 'https://nexacreators.com.br'}/storage/${item.file_path}`}
                                                        alt={item.title}
                                                        className="object-cover w-full h-full rounded-md cursor-pointer"
@@ -867,7 +867,7 @@ export default function Portfolio() {
                                 <div key={`new-${idx}`} className="rounded-lg bg-background flex flex-col items-start justify-between aspect-[4/3] p-2 relative overflow-hidden group">
                                     <span className={`absolute top-2 left-2 text-white text-xs px-2 py-0.5 rounded-full z-10 ${item.type === 'image' ? 'bg-purple-500' : 'bg-blue-500'}`}>{item.type === 'image' ? 'Foto' : 'Vídeo'}</span>
                                     {item.type === 'image' ? (
-                                        <img
+                                        <Image
                                             src={item.url}
                                             alt="media"
                                             className="object-cover w-full h-full rounded-md cursor-pointer"
@@ -944,7 +944,7 @@ export default function Portfolio() {
             {isImageModalOpen && selectedImage && (
                 <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50" onClick={handleCloseImageModal}>
                     <div className="relative max-w-full max-h-full p-4">
-                        <img
+                        <Image
                             src={selectedImage}
                             alt="Portfolio Image"
                             className="max-w-full max-h-full object-contain"

@@ -328,7 +328,7 @@ const CampaignManagement: React.FC<CampaignManagementProps> = ({ setComponent })
                         const logoUrl = getCampaignLogoUrl(campaign.logo);
                         if (logoUrl) {
                           return (
-                            <img
+                            <Image
                               src={logoUrl}
                               alt={campaign.title}
                               className="w-full h-full rounded-lg object-cover"
@@ -491,7 +491,7 @@ const CampaignManagement: React.FC<CampaignManagementProps> = ({ setComponent })
                     const logoUrl = getCampaignLogoUrl(selectedCampaign.logo);
                     if (logoUrl) {
                       return (
-                        <img
+                        <Image
                           src={logoUrl}
                           alt={selectedCampaign.title}
                           className="w-full h-full rounded-lg object-cover"

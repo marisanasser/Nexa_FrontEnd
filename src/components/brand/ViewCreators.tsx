@@ -139,7 +139,7 @@ const ViewCreators: React.FC<ViewCreatorsProps> = ({ setComponent, campaignId, c
                 {(() => {
                   const avatarUrl = getAvatarUrl(creator.avatar || creator.avatar_url);
                   return avatarUrl ? (
-                    <img
+                    <Image
                       src={avatarUrl}
                       alt={creator.name || "Criador"}
                       className="w-14 h-14 rounded-full object-cover border border-gray-200 dark:border-neutral-700"
@@ -320,7 +320,7 @@ const ViewCreators: React.FC<ViewCreatorsProps> = ({ setComponent, campaignId, c
               {(() => {
                 const avatarUrl = getAvatarUrl(selectedApp?.creator?.avatar || selectedApp?.creator?.avatar_url);
                 return avatarUrl ? (
-                  <img
+                  <Image
                     src={avatarUrl}
                     alt={selectedApp.creator.name || "Criador"}
                     className="w-12 h-12 rounded-full object-cover border border-gray-200 dark:border-neutral-700"

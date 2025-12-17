@@ -303,7 +303,7 @@ const AllowedCampaigns: React.FC<AllowedCampaignsProps> = ({ setComponent }) => 
                                             const logoUrl = getCampaignLogoUrl(campaign.logo);
                                             if (logoUrl) {
                                                 return (
-                                                    <img
+                                                    <Image
                                                         src={logoUrl}
                                                         alt={campaign.title || "campaign"}
                                                         className="w-full h-full object-cover"

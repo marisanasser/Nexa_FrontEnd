@@ -303,8 +303,8 @@ export const StripeConnectOnboarding: React.FC<StripeConnectOnboardingProps> = (
               <CreditCard className="w-4 h-4 text-white" />
             </div>
           ) : (
-            <img 
-              src="https://js.stripe.com/v3/fingerprinted/img/stripe-logo-280x280.png" 
+            <Image 
+              src="https://js.stripe.com/v3/fingerprinted/Image/stripe-logo-280x280.png" 
               alt="Stripe" 
               className="w-6 h-6"
               onError={() => setImageError(true)}
@@ -392,8 +392,8 @@ export const StripeConnectOnboarding: React.FC<StripeConnectOnboardingProps> = (
               {imageError ? (
                 <Building2 className="w-10 h-10 text-white" />
               ) : (
-                <img 
-                  src="https://js.stripe.com/v3/fingerprinted/img/stripe-logo-280x280.png" 
+                <Image 
+                  src="https://js.stripe.com/v3/fingerprinted/Image/stripe-logo-280x280.png" 
                   alt="Stripe" 
                   className="w-10 h-10"
                   onError={() => setImageError(true)}

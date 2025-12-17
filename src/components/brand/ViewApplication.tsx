@@ -16,7 +16,7 @@ const ImageAttachmentPreview: React.FC<{ src: string; alt: string; fileName: str
   return (
     <div className="w-8 h-12 bg-green-100 dark:bg-green-900 rounded-lg flex items-center justify-center overflow-hidden">
       {!imageError ? (
-        <img
+        <Image
           src={src}
           alt={alt}
           className="w-8 h-8 object-cover"
@@ -269,7 +269,7 @@ const ViewApplication: React.FC<ViewApplicationProps> = ({ setComponent, campaig
                 const logoUrl = getCampaignLogoUrl(campaign.logo);
                 if (logoUrl) {
                   return (
-                    <img
+                    <Image
                       src={logoUrl}
                       alt="Campaign Logo" 
                       className="w-full h-full object-cover"

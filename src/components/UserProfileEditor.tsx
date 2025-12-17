@@ -239,7 +239,7 @@ export const UserProfileEditor: React.FC<UserProfileEditorProps> = ({
           </label>
           <div className="flex items-center gap-3">
             {formData.avatar_url && (
-              <img src={formData.avatar_url} alt="avatar" className="w-12 h-12 rounded-full object-cover border" />
+              <Image src={formData.avatar_url} alt="avatar" className="w-12 h-12 rounded-full object-cover border" />
             )}
             <input
               type="file"

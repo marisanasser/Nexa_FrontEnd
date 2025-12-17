@@ -35,8 +35,8 @@ export const StripeConnectExample: React.FC = () => {
       <CardHeader className="pb-3">
         <CardTitle className="flex items-center justify-between">
           <span className="flex items-center gap-2">
-            <img 
-              src="https://js.stripe.com/v3/fingerprinted/img/stripe-logo-280x280.png" 
+            <Image 
+              src="https://js.stripe.com/v3/fingerprinted/Image/stripe-logo-280x280.png" 
               alt="Stripe" 
               className="w-5 h-5"
             />

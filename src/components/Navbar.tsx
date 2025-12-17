@@ -48,9 +48,9 @@ export const Navbar = () => {
                 <div className="text-xl md:text-2xl font-bold text-foreground" onClick={() => navigate("/")}>
                     {
                         isDarkMode ? (
-                            <img src={LightLogo} alt="Logo" width={90} className="w-30 cursor-pointer" />
+                            <Image src={LightLogo} alt="Logo" width={90} className="w-30 cursor-pointer" />
                         ) : (
-                            <img src={DarkLogo} alt="Logo" width={90} className="w-30 cursor-pointer" />
+                            <Image src={DarkLogo} alt="Logo" width={90} className="w-30 cursor-pointer" />
                         )
                     }
                 </div>

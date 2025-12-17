@@ -181,7 +181,7 @@ const MediaSlot = ({ step, label }: { step: Step; label: string }) => {
             </>
           ) : hasScreenshots && step.screenshot_urls ? (
             <>
-              <img
+              <Image
                 src={step.screenshot_urls[currentScreenshot]}
                 alt={`${step.title} - Screenshot ${currentScreenshot + 1}`}
                 className="w-full h-full object-contain"

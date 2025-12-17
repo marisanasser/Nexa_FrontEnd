@@ -607,14 +607,14 @@ const CreatorProfile: React.FC<CreatorProfileProps> = ({ creatorId, onBack, setC
                             {item.media_type === 'video' ? (
                               <div className="relative w-full sm:w-32 h-24 bg-muted rounded-lg flex items-center justify-center">
                                 <Play className="h-8 w-8 text-muted-foreground" />
-                                <img
+                                <Image
                                   src={item.thumbnail_url}
                                   alt={item.title}
                                   className="absolute inset-0 w-full h-full object-cover rounded-lg opacity-50"
                                 />
                               </div>
                             ) : (
-                              <img
+                              <Image
                                 src={item.file_url}
                                 alt={item.title}
                                 className="w-full sm:w-32 h-24 object-cover rounded-lg"

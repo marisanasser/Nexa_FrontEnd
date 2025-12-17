@@ -126,8 +126,8 @@ export const StripeConnectCard: React.FC<StripeConnectCardProps> = ({
         <CardContent className="p-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <img 
-                src="https://js.stripe.com/v3/fingerprinted/img/stripe-logo-280x280.png" 
+              <Image 
+                src="https://js.stripe.com/v3/fingerprinted/Image/stripe-logo-280x280.png" 
                 alt="Stripe" 
                 className="w-5 h-5"
               />
@@ -162,8 +162,8 @@ export const StripeConnectCard: React.FC<StripeConnectCardProps> = ({
     <Card className={className}>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <img 
-            src="https://js.stripe.com/v3/fingerprinted/img/stripe-logo-280x280.png" 
+          <Image 
+            src="https://js.stripe.com/v3/fingerprinted/Image/stripe-logo-280x280.png" 
             alt="Stripe" 
             className="w-5 h-5"
           />

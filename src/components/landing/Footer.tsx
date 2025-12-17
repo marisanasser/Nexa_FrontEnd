@@ -19,7 +19,7 @@ export const Footer = () => {
           {}
           <div className="sm:col-span-2 lg:col-span-1">
             <div className="text-xl md:text-2xl font-bold mb-4">
-              <img
+              <Image
                 src={LightLogo}
                 alt="NEXA UGC"
                 className="w-30 h-10 hidden dark:block"

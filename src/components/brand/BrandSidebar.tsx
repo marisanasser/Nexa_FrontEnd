@@ -104,7 +104,7 @@ const Sidebar = ({ setComponent, component }: SidebarProps) => {
                 >
                     {}
                     <div className="flex items-center justify-between px-4 py-5 border-b">
-                        <img src={isDarkMode ? LightLogo : DarkLogo} alt="Logo" width={90} className="w-28" />
+                        <Image src={isDarkMode ? LightLogo : DarkLogo} alt="Logo" width={90} className="w-28" />
                         <button
                             aria-label="Fechar menu"
                             className="text-xl p-1 text-muted-foreground hover:text-foreground focus:outline-none"
@@ -145,9 +145,9 @@ const Sidebar = ({ setComponent, component }: SidebarProps) => {
             <div className="flex items-center gap-2 mb-8 px-2">
                 {
                     isDarkMode ? (
-                        <img src={LightLogo} alt="Logo" width={90} className="w-28" />
+                        <Image src={LightLogo} alt="Logo" width={90} className="w-28" />
                     ) : (
-                        <img src={DarkLogo} alt="Logo" width={90} className="w-28" />
+                        <Image src={DarkLogo} alt="Logo" width={90} className="w-28" />
                     )
                 }
             </div>
