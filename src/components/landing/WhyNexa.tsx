@@ -24,10 +24,10 @@ export const WhyNexaSection = () => {
               Durante essa jornada, percebi que muitos creators talentosos não sabiam como monetizar adequadamente seu conteúdo ou como se conectar com marcas dispostas a pagar valores justos. 
             </p>
             <p className="text-base md:text-lg text-muted-foreground leading-relaxed">
-               falta de uma plataforma brasileira que realmente entendesse nossa realidade e oferecesse oportunidades reais era um problema que eu mesmo enfrentei.
+              Percebi a falta de uma plataforma brasileira que realmente entendesse nossa realidade e oferecesse oportunidades reais, um problema que eu mesma enfrentei.
             </p>
             <p className="text-base md:text-lg text-muted-foreground leading-relaxed">
-               Foi então que criei a NEXA: para ser a ponte definitiva entre creators brasileiros autênticos e marcas que valorizam conteúdo genuíno, garantindo pagamentos justos, processos transparentes e proteção total para ambos os lados.
+               Foi então que criei a <span className="font-extralight">NEXA</span> -  para ser a ponte definitiva entre creators brasileiros autênticos e marcas que valorizam conteúdo genuíno, garantindo pagamentos justos, processos transparentes e proteção total para ambos os lados.
             </p>
             <p className="text-base md:text-lg text-muted-foreground leading-relaxed">
                Minha missão é construir o maior ecossistema de UGC do Brasil, onde creators podem prosperar financeiramente, aprender continuamente e crescer em uma comunidade de alta performance.

@@ -16,7 +16,7 @@ import {
   CheckCircle,
   ChevronRight,
   Home,
-  Image,
+  Image as ImageIcon,
   Play,
   Menu
 } from "lucide-react";
@@ -65,7 +65,7 @@ function DocumentationSidebar({ sections, activeSection, onSectionChange }: {
       <div className="p-6">
         <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
           <BookOpen className="h-5 w-5" />
-          Documentação
+          Guias
         </h2>
         
         <nav className="space-y-2">
@@ -123,7 +123,7 @@ function MobileSidebar({ sections, activeSection, onSectionChange }: {
     <div className="md:hidden fixed top-[88px] left-1/2 -translate-x-1/2 w-full max-w-4xl z-40 px-4">
       <Button variant="outline" className="w-full justify-center gap-2" onClick={() => setOpen(!open)}>
         <Menu className="h-4 w-4" />
-        Navegação da Documentação
+        Navegação de Guias
       </Button>
       {open && (
         <div className="mt-2 rounded-md border bg-background shadow-sm p-4 space-y-2">
@@ -174,7 +174,7 @@ function OverviewContent() {
     <div className="max-w-4xl mx-auto space-y-8 mt-[112px] px-4 md:px-0">
       <div className="text-center space-y-4">
         <h1 className="text-4xl font-bold tracking-tight">
-          Documentação da Plataforma Nexa
+          Guias da Plataforma Nexa
         </h1>
         <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
           Guias completos para marcas e criadores maximizarem o sucesso na plataforma Nexa.
@@ -303,11 +303,11 @@ function GuideContent({ guide }: { guide: Guide }) {
                       {step.screenshot_urls && step.screenshot_urls.length > 0 && (
                         <div className="space-y-3">
                           <h4 className="text-sm font-medium flex items-center gap-2">
-                            <Image className="h-4 w-4" />
+                            <ImageIcon className="h-4 w-4" />
                             Screenshots
                           </h4>
                           <div className="relative">
-                            <Image
+                            <img
                               src={step.screenshot_urls[currentScreenshot[step.id] || 0]}
                               alt={`${step.title} - Screenshot ${(currentScreenshot[step.id] || 0) + 1}`}
                               className="w-full md:max-w-2xl rounded-lg border shadow-sm"
@@ -464,7 +464,7 @@ export default function Documentation() {
         <div className="flex items-center justify-center h-64">
           <div className="text-center space-y-4">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto"></div>
-            <p>Carregando documentação...</p>
+            <p>Carregando guias...</p>
           </div>
         </div>
       );
